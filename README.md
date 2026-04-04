@@ -56,12 +56,12 @@ Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estruc
 
 6. Equipo de Desarrollo (Sección 01)
 
-- Pacheco, Ángel - 20-10479 - Líder de Proyecto, Integración e Infraestructura
-- Ramírez, Rosa - 20-10527 - Documentación Técnica y Teoría de Normalización
-- García, Ricardo - 20-10274 - Backend y Módulo de Exportación
-- Orta, Brian - 21-10447 - Ingeniería de Datos y SQL Analítico
-- Isea, Luis M - 19-10175 - Análisis Estructural y Estrategia de Defensa
-- Valero, Angel - 18-10436 - Frontend y Diseño de Experiencia de Usuario
+- Pacheco, Ángel - Líder de Proyecto, Integración e Infraestructura
+- Ramírez, Rosa - Documentación Técnica y Teoría de Normalización
+- García, Ricardo - Backend y Módulo de Exportación
+- Orta, Brian - Ingeniería de Datos y SQL Analítico
+- Isea, Luis M - Análisis Estructural y Estrategia de Defensa
+- Valero, Angel - Frontend y Diseño de Experiencia de Usuario
 
 7. Información Académica
 
