@@ -70,7 +70,7 @@ García, Ricardo - 20-10274 - Backend y Módulo de Exportación
 
 Orta, Brian - 21-10447 - Ingeniería de Datos y SQL Analítico
 
-Isea, Luis - 19-10175 - Análisis Estructural y Estrategia de Defensa
+Isea, Luis M - 19-10175 - Análisis Estructural y Estrategia de Defensa
 
 Valero, Angel - 18-10436 - Frontend y Diseño de Experiencia de Usuario
 
