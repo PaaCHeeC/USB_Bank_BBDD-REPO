@@ -47,12 +47,12 @@ Pasos de Ejecución
 - Configuración de Datos:
 Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estructura de tablas y cargar los datos de prueba.
 - Entorno Virtual (Recomendado):
-  python3 -m venv venv
-  source venv/bin/activate # En Windows: venv\Scripts\activate
+  - python3 -m venv venv
+  - source venv/bin/activate # En Windows: venv\Scripts\activate
 - Instalación de Dependencias:
-  pip install -r requirements.txt
+  - pip install -r requirements.txt
 - Inicio de la Aplicación:
-  python src/main.py
+  - python src/main.py
 
 6. Equipo de Desarrollo (Sección 01)
 
