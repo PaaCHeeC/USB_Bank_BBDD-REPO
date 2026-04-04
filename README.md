@@ -44,35 +44,24 @@ Requisitos Previos
 
 Pasos de Ejecución
 
-i. Configuración de Datos:
+- Configuración de Datos:
 Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estructura de tablas y cargar los datos de prueba.
-
-ii. Entorno Virtual (Recomendado):
-
-python3 -m venv venv
-source venv/bin/activate # En Windows: venv\Scripts\activate
-
-iii. Instalación de Dependencias:
-
-pip install -r requirements.txt
-
-iv. Inicio de la Aplicación:
-
-python src/main.py
+- Entorno Virtual (Recomendado):
+  python3 -m venv venv
+  source venv/bin/activate # En Windows: venv\Scripts\activate
+- Instalación de Dependencias:
+  pip install -r requirements.txt
+- Inicio de la Aplicación:
+  python src/main.py
 
 6. Equipo de Desarrollo (Sección 01)
 
-Pacheco, Ángel - 20-10479 - Líder de Proyecto, Integración e Infraestructura
-
-Ramírez, Rosa - 20-10527 - Documentación Técnica y Teoría de Normalización
-
-García, Ricardo - 20-10274 - Backend y Módulo de Exportación
-
-Orta, Brian - 21-10447 - Ingeniería de Datos y SQL Analítico
-
-Isea, Luis M - 19-10175 - Análisis Estructural y Estrategia de Defensa
-
-Valero, Angel - 18-10436 - Frontend y Diseño de Experiencia de Usuario
+- Pacheco, Ángel - 20-10479 - Líder de Proyecto, Integración e Infraestructura
+- Ramírez, Rosa - 20-10527 - Documentación Técnica y Teoría de Normalización
+- García, Ricardo - 20-10274 - Backend y Módulo de Exportación
+- Orta, Brian - 21-10447 - Ingeniería de Datos y SQL Analítico
+- Isea, Luis M - 19-10175 - Análisis Estructural y Estrategia de Defensa
+- Valero, Angel - 18-10436 - Frontend y Diseño de Experiencia de Usuario
 
 7. Información Académica
 
