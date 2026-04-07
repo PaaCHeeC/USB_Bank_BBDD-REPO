@@ -61,6 +61,7 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
 #generador_reportes_estadisticos genera los reportes estadisticos con los requerimientos solicitados
 #la cual genera un txt y un pdf como reportes 
 def generador_reportes_estadisticos(df_clientes, fecha_inicio=None, fecha_fin=None, tipo_cliente=None, canal=None):
+    print("¡Llamada al integrador detectada!")
     if df_clientes.empty:
         print("[AVISO] No hay datos en la base de datos para generar este reporte estadístico.")
 

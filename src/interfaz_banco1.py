@@ -34,11 +34,7 @@ class InterfazBanco(ctk.CTk):
         if self.seccion_activa == "contable" and filtros['agrupar_por'] not in ['cuenta', 'cliente', 'canal', 'tarjeta']:
             filtros['agrupar_por'] = 'cliente' # Default preventivo
 
-        print(f"\n--- Solicitando Reporte {self.seccion_activa.upper()} ---")
-        obtener_datos_y_generar(self.seccion_activa, filtros)
-        
         from tkinter import messagebox
-
         # ... dentro de comando_generar_reporte ...
         print(f"\n--- Solicitando Reporte {self.seccion_activa.upper()} ---")
         obtener_datos_y_generar(self.seccion_activa, filtros)

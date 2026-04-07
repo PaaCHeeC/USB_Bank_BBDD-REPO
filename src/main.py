@@ -17,18 +17,26 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
         if tipo_reporte == 'estadistico':
             query = """
                 SELECT 
-                    c.id_cliente AS "ID_Cliente",
-                    COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org) AS "Nombre",
-                    c.tipo_cliente AS "Tipo_Cliente",
-                    can.tipo_canal AS "Canal_Afiliacion",
-                    c.fecha_registro AS "Fecha_Registro",
-                    (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu WHERE cu.id_cliente = c.id_cliente) AS "Total_Productos",
-                    COALESCE((SELECT SUM(saldo) FROM "usb_bank"."CUENTA" cu WHERE cu.id_cliente = c.id_cliente), 0) AS "Saldo_Total"
-                FROM "usb_bank"."CLIENTE" c
-                LEFT JOIN "usb_bank"."CLIENTE_NATURAL" cn ON c.id_cliente = cn.id_cliente
-                LEFT JOIN "usb_bank"."CLIENTE_JURIDICO" cj ON c.id_cliente = cj.id_cliente
-                LEFT JOIN "usb_bank"."CANAL" can ON c.id_canal_onboarding = can.id_canal
-                ORDER BY c.id_cliente
+                    "CLIENTE".id_cliente AS "ID_Cliente", 
+                    COALESCE("CLIENTE_NATURAL".primer_nombre || ' ' || "CLIENTE_NATURAL".apellido, 
+                "CLIENTE_JURIDICO".nombre_org) AS "Nombre", 
+                    "CLIENTE".tipo_cliente AS "Tipo_Cliente", 
+                    "CANAL".tipo_canal AS "Canal_Afiliacion",
+                    COALESCE("CUENTA".cuentas, 0) AS "Total_Productos",
+                    COALESCE("CUENTA".saldo_total_cuenta, 0.00) AS "Saldo_Total",
+                    "CLIENTE".fecha_registro AS "Fecha_Registro"
+                FROM usb_bank."CLIENTE"
+                LEFT JOIN usb_bank."CLIENTE_NATURAL" ON "CLIENTE"."id_cliente" = "CLIENTE_NATURAL"."id_cliente"
+                LEFT JOIN usb_bank."CLIENTE_JURIDICO" ON "CLIENTE"."id_cliente" = "CLIENTE_JURIDICO"."id_cliente"
+                JOIN usb_bank."CANAL" ON "CLIENTE"."id_canal_onboarding" = "CANAL"."id_canal"
+                LEFT JOIN (
+                    SELECT id_cliente, 
+                    SUM(saldo) AS saldo_total_cuenta, 
+                    COUNT(id_cliente) AS cuentas 
+                    FROM usb_bank."CUENTA"
+                    GROUP BY id_cliente
+                ) "CUENTA" ON "CLIENTE"."id_cliente" = "CUENTA"."id_cliente"
+                ORDER BY "CLIENTE".id_cliente;
             """
         else:
             query = """
