@@ -36,6 +36,13 @@ class InterfazBanco(ctk.CTk):
 
         print(f"\n--- Solicitando Reporte {self.seccion_activa.upper()} ---")
         obtener_datos_y_generar(self.seccion_activa, filtros)
+        
+        from tkinter import messagebox
+
+        # ... dentro de comando_generar_reporte ...
+        print(f"\n--- Solicitando Reporte {self.seccion_activa.upper()} ---")
+        obtener_datos_y_generar(self.seccion_activa, filtros)
+        messagebox.showinfo("Éxito", f"Reporte {self.seccion_activa} generado correctamente.")
 
     def mostrar_reporte_clientes(self):
         self.seccion_activa = "estadistico"
