@@ -1,24 +1,6 @@
 import customtkinter as ctk
 from tkinter import ttk
 
-
-# Funciones vacías
-def comando_generar_txt():
-    print("Botón TXT presionado")
-
-
-def comando_generar_pdf():
-    print("Botón PDF presionado")
-
-
-def mostrar_reporte_clientes():
-    print("Navegación: Reporte Estadístico (Clientes)")
-
-
-def mostrar_reporte_dinero():
-    print("Navegación: Reporte Contable (Dinero)")
-
-
 # Configuración principal
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -36,6 +18,8 @@ class InterfazBanco(ctk.CTk):
         self.grid_columnconfigure(0, weight=0)  # panel lateral
         self.grid_columnconfigure(1, weight=1)  # panel central
         self.grid_rowconfigure(0, weight=1)
+
+        self.seccion_activa = "clientes"
 
         self.crear_panel_lateral()
         self.crear_panel_central()

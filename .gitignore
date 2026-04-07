@@ -1,0 +1,17 @@
+# Entornos virtuales
+.venv/
+env/
+venv/
+
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+
+# Credenciales y archivos de entorno (¡SÚPER IMPORTANTE!)
+database.ini
+src/database.ini
+
+# Archivos generados por el programa
+reportes_generados/
+*.pdf
+*.txt
