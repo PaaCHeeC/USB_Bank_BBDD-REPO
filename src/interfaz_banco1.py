@@ -42,15 +42,27 @@ class InterfazBanco(ctk.CTk):
 
     def mostrar_reporte_clientes(self):
         self.seccion_activa = "estadistico"
-        self.combo_filtro.configure(values=["Todos", "Natural", "Juridico"])
+        self.combo_filtro.configure(state="normal", values=["Todos", "Natural", "Juridico"])
         self.combo_filtro.set("Todos")
+        self.entry_inicio.configure(state="normal")
+        self.entry_fin.configure(state="normal")
         print("Navegación: Reporte Estadístico (Clientes)")
 
     def mostrar_reporte_dinero(self):
         self.seccion_activa = "contable"
-        self.combo_filtro.configure(values=["Cliente", "Cuenta", "Canal", "Tarjeta"])
+        self.combo_filtro.configure(state="normal", values=["Cliente", "Cuenta", "Canal", "Tarjeta"])
         self.combo_filtro.set("Cliente")
+        self.entry_inicio.configure(state="normal")
+        self.entry_fin.configure(state="normal")
         print("Navegación: Reporte Contable (Dinero)")
+    
+    def mostrar_reporte_auditoria(self):
+        self.seccion_activa = "auditoria"
+        self.combo_filtro.configure(values=["Ejecución Automática"], state="disabled")
+        self.combo_filtro.set("Ejecución Automática")
+        self.entry_inicio.configure(state="disabled")
+        self.entry_fin.configure(state="disabled")
+        print("Navegación: Auditoría y Limpieza")
 
     def crear_panel_lateral(self):
         self.frame_lateral = ctk.CTkFrame(self, width=250, corner_radius=0)
@@ -79,6 +91,14 @@ class InterfazBanco(ctk.CTk):
             width=190, height=60, font=ctk.CTkFont(size=15, weight="bold")
         )
         self.btn_dinero.grid(row=3, column=0, padx=20, pady=10, sticky="n")
+        # Debajo de self.btn_dinero...
+        self.frame_lateral.grid_rowconfigure(4, weight=1)
+
+        self.btn_auditoria = ctk.CTkButton(
+            self.frame_lateral, text="Limpieza / Auditoría\n(Seguridad)", command=self.mostrar_reporte_auditoria,
+            width=190, height=60, font=ctk.CTkFont(size=15, weight="bold"), fg_color="#8B0000", hover_color="#5C0000" # Rojo para indicar peligro/borrado
+        )
+        self.btn_auditoria.grid(row=4, column=0, padx=20, pady=10, sticky="n")
 
     def crear_panel_central(self):
         self.frame_central = ctk.CTkFrame(self, corner_radius=15)

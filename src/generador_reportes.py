@@ -10,7 +10,7 @@ from datetime import datetime
 
 #Aqui creamos los directorios necesarios para guardar los reportes, si es que no existen 
 creacion_de_carpeta_reportes('reportes_generados')
-carpetas_reportes = ['reportes_estadisticos', 'reportes_contables']
+carpetas_reportes = ['reportes_estadisticos', 'reportes_contables', 'reportes_auditoria']
 ruta = 'reportes_generados'
 for carpeta in carpetas_reportes:
     ruta_completa = os.path.join(ruta, carpeta)
@@ -145,3 +145,23 @@ def generador_reportes_contables(df_movimientos, agrupar_por: str):
     #genera el PDF para el reporte contable
     nombre_pdf = f"Saldos_Por_{agrupar_por}_{timestamp}.pdf"
     exportar_pdf(df_pivot, nombre_pdf, 'reportes_contables')
+    
+# Esta funcion hace el reporte de clientes eliminados por inactividad
+def generador_reportes_auditoria(df_auditoria):
+    if df_auditoria.empty:
+        print("[AVISO] No hay clientes eliminados registrados en la auditoría.")
+        return
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    nombre_archivo = f"reportes_generados/reportes_auditoria/Auditoria_Limpieza_{timestamp}.txt"
+
+    with open(nombre_archivo, 'w', encoding='utf-8') as f:
+        f.write("REPORTE DE AUDITORÍA: CLIENTES ELIMINADOS POR INACTIVIDAD\n")
+        f.write(f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("-" * 80 + "\n\n")
+        f.write(df_auditoria.to_string(index=False))
+        
+    print(f"[TXT OK] Reporte de auditoría generado en: {nombre_archivo}")
+
+    nombre_pdf = f"Auditoria_Limpieza_{timestamp}.pdf"
+    exportar_pdf(df_auditoria, nombre_pdf, 'reportes_auditoria')

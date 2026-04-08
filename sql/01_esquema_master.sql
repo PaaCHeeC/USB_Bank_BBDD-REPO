@@ -326,3 +326,89 @@ CREATE TABLE "MOVIMIENTO_PAGOMOVIL" (
     pm_ci VARCHAR(20) NOT NULL,
     CONSTRAINT fk_mpagomovil_movimiento FOREIGN KEY (nro_referencia) REFERENCES "MOVIMIENTO"(nro_referencia) ON DELETE CASCADE
 );
+
+-- ==============================================================================
+-- MÓDULO DE AUDITORÍA Y LIMPIEZA (Adaptado a Esquema usb_bank BCNF/5FN)
+-- ==============================================================================
+SET search_path TO "usb_bank";
+
+-- 1. CORRECCIÓN DE BORRADOS EN CASCADA
+ALTER TABLE "CUENTA" DROP CONSTRAINT IF EXISTS fk_cuenta_cliente;
+ALTER TABLE "CUENTA" ADD CONSTRAINT fk_cuenta_cliente FOREIGN KEY (id_cliente) REFERENCES "CLIENTE"(id_cliente) ON DELETE CASCADE;
+
+ALTER TABLE "TARJETA" DROP CONSTRAINT IF EXISTS fk_tarjeta_cuenta;
+ALTER TABLE "TARJETA" ADD CONSTRAINT fk_tarjeta_cuenta FOREIGN KEY (nro_cuenta) REFERENCES "CUENTA"(nro_cuenta) ON DELETE CASCADE;
+
+ALTER TABLE "MOVIMIENTO_PAGO_POS" DROP CONSTRAINT IF EXISTS fk_mpos_tarjeta;
+ALTER TABLE "MOVIMIENTO_PAGO_POS" ADD CONSTRAINT fk_mpos_tarjeta FOREIGN KEY (nro_tarjeta) REFERENCES "TARJETA"(nro_tarjeta) ON DELETE CASCADE;
+
+ALTER TABLE "MOVIMIENTO_PAGO_ECOMMERCE" DROP CONSTRAINT IF EXISTS fk_mecom_tarjeta;
+ALTER TABLE "MOVIMIENTO_PAGO_ECOMMERCE" ADD CONSTRAINT fk_mecom_tarjeta FOREIGN KEY (nro_tarjeta) REFERENCES "TARJETA"(nro_tarjeta) ON DELETE CASCADE;
+
+ALTER TABLE "MOVIMIENTO_RETIRO_ATM" DROP CONSTRAINT IF EXISTS fk_matm_tarjeta;
+ALTER TABLE "MOVIMIENTO_RETIRO_ATM" ADD CONSTRAINT fk_matm_tarjeta FOREIGN KEY (nro_tarjeta) REFERENCES "TARJETA"(nro_tarjeta) ON DELETE CASCADE;
+
+-- 2. TABLA DE AUDITORÍA
+CREATE TABLE IF NOT EXISTS "REPORTE_CLIENTES_ELIMINADOS" (
+    id_reporte SERIAL PRIMARY KEY,
+    fecha_eliminacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    id_cliente INTEGER NOT NULL,
+    doc_cliente VARCHAR(30),
+    nombre_cliente VARCHAR(150) NOT NULL,
+    cantidad_cuentas INTEGER NOT NULL DEFAULT 0
+);
+
+-- 3. FUNCIÓN Y TRIGGER
+CREATE OR REPLACE FUNCTION auditar_eliminacion_cliente()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+DECLARE
+    v_documento VARCHAR(30); v_nombre VARCHAR(150); v_cant_cuentas INTEGER;
+BEGIN
+    SELECT COALESCE(k.numero_documento, OLD.rif, 'SIN DOC') INTO v_documento FROM "VALIDACION_KYC" k WHERE k.id_cliente = OLD.id_cliente;
+    
+    IF OLD.tipo_cliente = 'Natural' THEN 
+        SELECT COALESCE(cn.primer_nombre || ' ' || cn.apellido, 'SIN NOMBRE') INTO v_nombre FROM "CLIENTE_NATURAL" cn WHERE cn.id_cliente = OLD.id_cliente;
+    ELSIF OLD.tipo_cliente = 'Juridico' THEN 
+        SELECT COALESCE(cj.nombre_org, 'SIN NOMBRE') INTO v_nombre FROM "CLIENTE_JURIDICO" cj WHERE cj.id_cliente = OLD.id_cliente;
+    ELSE
+        v_nombre := 'NO DEFINIDO';
+    END IF;
+    
+    SELECT COUNT(*) INTO v_cant_cuentas FROM "CUENTA" WHERE id_cliente = OLD.id_cliente;
+    INSERT INTO "REPORTE_CLIENTES_ELIMINADOS" (id_cliente, doc_cliente, nombre_cliente, cantidad_cuentas) VALUES (OLD.id_cliente, v_documento, v_nombre, v_cant_cuentas);
+    RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS tr_auditar_eliminacion ON "CLIENTE";
+CREATE TRIGGER tr_auditar_eliminacion BEFORE DELETE ON "CLIENTE" FOR EACH ROW EXECUTE FUNCTION auditar_eliminacion_cliente();
+
+-- 4. STORED PROCEDURE Y CURSOR (Para la defensa técnica)
+CREATE OR REPLACE PROCEDURE "sp_mostrar_clientes_eliminados"()
+LANGUAGE plpgsql AS $$
+DECLARE
+    v_id_cliente INTEGER; v_doc_cliente VARCHAR(30); v_nombre_cliente VARCHAR(150); v_cantidad_cuentas INTEGER;
+    v_total_ingresos NUMERIC(15,2) := 0; v_total_egresos NUMERIC(15,2) := 0; v_saldo_total_banco NUMERIC(15,2) := 0; v_total_clientes INTEGER := 0;
+    cur_clientes CURSOR FOR SELECT id_cliente, doc_cliente, nombre_cliente, cantidad_cuentas FROM "REPORTE_CLIENTES_ELIMINADOS" ORDER BY fecha_eliminacion DESC, id_cliente;
+BEGIN
+    RAISE NOTICE '=== REPORTE DE CLIENTES ELIMINADOS POR INACTIVIDAD ===';
+    OPEN cur_clientes;
+    LOOP
+        FETCH cur_clientes INTO v_id_cliente, v_doc_cliente, v_nombre_cliente, v_cantidad_cuentas;
+        EXIT WHEN NOT FOUND;
+        RAISE NOTICE 'ID: % | DOC: % | NOMBRE: % | CUENTAS: %', LPAD(v_id_cliente::text, 4, '0'), RPAD(COALESCE(v_doc_cliente, 'N/A'), 12, ' '), RPAD(v_nombre_cliente, 25, ' '), v_cantidad_cuentas;
+    END LOOP;
+    CLOSE cur_clientes;
+
+    SELECT COUNT(DISTINCT id_cliente) INTO v_total_clientes FROM "REPORTE_CLIENTES_ELIMINADOS";
+    SELECT COALESCE(SUM(monto_ingreso), 0) INTO v_total_ingresos FROM "MOVIMIENTO";
+    SELECT COALESCE(SUM(monto_egreso), 0) INTO v_total_egresos FROM "MOVIMIENTO";
+    SELECT COALESCE(SUM(saldo), 0) INTO v_saldo_total_banco FROM "CUENTA";
+
+    RAISE NOTICE '=== RESUMEN GENERAL DEL BANCO (POST-ELIMINACIÓN) ===';
+    RAISE NOTICE 'TOTAL CLIENTES ELIMINADOS: %', v_total_clientes;
+    RAISE NOTICE 'TOTAL INGRESOS REGISTRADOS: % VES', v_total_ingresos;
+    RAISE NOTICE 'TOTAL EGRESOS REGISTRADOS:  % VES', v_total_egresos;
+    RAISE NOTICE 'SALDO TOTAL EN BÓVEDAS:     % VES', v_saldo_total_banco;
+END;
+$$;
