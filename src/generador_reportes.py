@@ -32,7 +32,6 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
     pdf.cell(0, 10, f"Fecha de emisión: {fecha_actual}", align="C", new_x="LMARGIN", new_y="NEXT")
     pdf.ln(5) 
     
-    
     columnas = [str(col) for col in datos.columns.tolist()]
     filas = datos.astype(str).values.tolist()
     
@@ -58,10 +57,9 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
     pdf.output(ruta_destino)
     print(f"[PDF OK] Reporte guardado en: {ruta_destino}")
 
-#generador_reportes_estadisticos genera los reportes estadisticos con los requerimientos solicitados
-#la cual genera un txt y un pdf como reportes 
-def generador_reportes_estadisticos(df_clientes, fecha_inicio=None, fecha_fin=None, tipo_cliente=None, canal=None):
-    print("¡Llamada al integrador detectada!")
+# generador_reportes_estadisticos genera los reportes estadisticos con los requerimientos solicitados
+# la cual genera un txt y un pdf como reportes 
+def generador_reportes_estadisticos(df_clientes, fecha_inicio=None, fecha_fin=None, tipo_cliente=None, canal=None, formato="ambos"):
     if df_clientes.empty:
         print("[AVISO] No hay datos en la base de datos para generar este reporte estadístico.")
 
@@ -86,32 +84,36 @@ def generador_reportes_estadisticos(df_clientes, fecha_inicio=None, fecha_fin=No
     
     df_final = clientes_filtrado[columnas_reporte]
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-    nombre_archivo = f"reportes_generados/reportes_estadisticos/Reporte_CBO_CEO_{timestamp}.txt"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    if formato.lower() in ["txt", "ambos"]:
+        etiqueta_tipo = tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
+        nombre_archivo = f"reportes_generados/reportes_estadisticos/Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.txt"
 
-    with open(nombre_archivo, 'w', encoding='utf-8') as f:
-        f.write("REPORTE ESTADISTICO EJECUTIVO (CBO/CEO)\n")
-        f.write(f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write(f"Fechas: {fecha_inicio} a {fecha_fin} | Tipo: {tipo_cliente} | Canal: {canal}\n")
-        f.write("-" * 80 + "\n\n")
+        with open(nombre_archivo, 'w', encoding='utf-8') as f:
+            f.write("REPORTE ESTADISTICO EJECUTIVO (CBO/CEO)\n")
+            f.write(f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write(f"Fechas: {fecha_inicio} a {fecha_fin} | Tipo: {tipo_cliente} | Canal: {canal}\n")
+            f.write("-" * 80 + "\n\n")
 
-        if df_final.empty:
-            f.write("No se encontraron clientes con los criterios especificados.\n")
-        else: 
-            f.write(df_final.to_string(index=False))
-            f.write("\n\n" + "-" * 80 + "\n")
-            if 'Saldo_Total' in df_final.columns:
-                f.write(f"SALDO TOTAL: ${df_final['Saldo_Total'].astype(float).sum():,.2f}\n")
+            if df_final.empty:
+                f.write("No se encontraron clientes con los criterios especificados.\n")
+            else: 
+                f.write(df_final.to_string(index=False))
+                f.write("\n\n" + "-" * 80 + "\n")
+                if 'Saldo_Total' in df_final.columns:
+                    f.write(f"SALDO TOTAL: ${df_final['Saldo_Total'].astype(float).sum():,.2f}\n")
 
-    print(f"[TXT OK] Reporte estadístico generado en: {nombre_archivo}")
+        print(f"[TXT OK] Reporte estadístico generado en: {nombre_archivo}")
 
     #genero el pdf en cuestion
-    etiqueta_tipo = tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
-    nombre_pdf = f"Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.pdf"
-    exportar_pdf(df_final, nombre_pdf, 'reportes_estadisticos')
+    if formato.lower() in ["pdf", "ambos"]:
+        etiqueta_tipo = tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
+        nombre_pdf = f"Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.pdf"
+        exportar_pdf(df_final, nombre_pdf, 'reportes_estadisticos')
 
 #hace lo mismo que generador_reportes_estadisticos, pero con reportes contables
-def generador_reportes_contables(df_movimientos, agrupar_por: str):
+def generador_reportes_contables(df_movimientos, agrupar_por: str, formato="ambos"):
     if df_movimientos.empty:
         print("[AVISO] No hay datos de movimientos para generar este reporte contable.")
         return
@@ -132,36 +134,42 @@ def generador_reportes_contables(df_movimientos, agrupar_por: str):
                                 columns='Tipo_Movimiento', aggfunc='sum', fill_value=0).reset_index()
     
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_archivo = f"reportes_generados/reportes_contables/Saldos_Por_{agrupar_por.capitalize()}_{timestamp}.txt"
+    
+    if formato.lower() in ["txt", "ambos"]:
+        nombre_archivo = f"reportes_generados/reportes_contables/Reporte_Contable_Para_{agrupar_por.capitalize()}_{timestamp}.txt"
 
-    with open(nombre_archivo, 'w', encoding='utf-8') as f:
-        f.write("REPORTE CONTABLE DE INGRESOS Y EGRESOS\n")
-        f.write(f"Agrupado por: {agrupar_por.upper()}\n")
-        f.write("-" * 50 + "\n\n")
-        f.write(df_pivot.to_string(index=False))
-        
-    print(f"[TXT OK] Reporte contable generado en: {nombre_archivo}")
+        with open(nombre_archivo, 'w', encoding='utf-8') as f:
+            f.write("REPORTE CONTABLE DE INGRESOS Y EGRESOS\n")
+            f.write(f"Agrupado por: {agrupar_por.upper()}\n")
+            f.write("-" * 50 + "\n\n")
+            f.write(df_pivot.to_string(index=False))
+            
+        print(f"[TXT OK] Reporte contable generado en: {nombre_archivo}")
 
     #genera el PDF para el reporte contable
-    nombre_pdf = f"Saldos_Por_{agrupar_por}_{timestamp}.pdf"
-    exportar_pdf(df_pivot, nombre_pdf, 'reportes_contables')
+    if formato.lower() in ["pdf", "ambos"]:
+        nombre_pdf = f"Reporte_Contable_Para_{agrupar_por}_{timestamp}.pdf"
+        exportar_pdf(df_pivot, nombre_pdf, 'reportes_contables')
     
 # Esta funcion hace el reporte de clientes eliminados por inactividad
-def generador_reportes_auditoria(df_auditoria):
+def generador_reportes_auditoria(df_auditoria, formato="ambos"):
     if df_auditoria.empty:
         print("[AVISO] No hay clientes eliminados registrados en la auditoría.")
         return
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    nombre_archivo = f"reportes_generados/reportes_auditoria/Auditoria_Limpieza_{timestamp}.txt"
+    
+    if formato.lower() in ["txt", "ambos"]:
+        nombre_archivo = f"reportes_generados/reportes_auditoria/Reporte_Auditoria_Limpieza_{timestamp}.txt"
 
-    with open(nombre_archivo, 'w', encoding='utf-8') as f:
-        f.write("REPORTE DE AUDITORÍA: CLIENTES ELIMINADOS POR INACTIVIDAD\n")
-        f.write(f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
-        f.write("-" * 80 + "\n\n")
-        f.write(df_auditoria.to_string(index=False))
-        
-    print(f"[TXT OK] Reporte de auditoría generado en: {nombre_archivo}")
+        with open(nombre_archivo, 'w', encoding='utf-8') as f:
+            f.write("REPORTE DE AUDITORÍA: CLIENTES ELIMINADOS POR INACTIVIDAD\n")
+            f.write(f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
+            f.write("-" * 80 + "\n\n")
+            f.write(df_auditoria.to_string(index=False))
+            
+        print(f"[TXT OK] Reporte de auditoría generado en: {nombre_archivo}")
 
-    nombre_pdf = f"Auditoria_Limpieza_{timestamp}.pdf"
-    exportar_pdf(df_auditoria, nombre_pdf, 'reportes_auditoria')
+    if formato.lower() in ["pdf", "ambos"]:
+        nombre_pdf = f"Reporte_Auditoria_Limpieza_{timestamp}.pdf"
+        exportar_pdf(df_auditoria, nombre_pdf, 'reportes_auditoria')

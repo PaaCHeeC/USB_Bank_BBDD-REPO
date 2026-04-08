@@ -116,21 +116,27 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
         print(f"Descargando datos de PostgreSQL par reporte {tipo_reporte} ...")
         df = pd.read_sql_query(query, connection)
 
+        formato = filtros.get('formato_deseado', 'ambos')
+
         if tipo_reporte == "estadistico":
             generador_reportes_estadisticos(
                 df_clientes=df, 
                 fecha_inicio=filtros.get('inicio'), 
                 fecha_fin=filtros.get('fin'),
                 tipo_cliente=filtros.get('tipo'),
-                canal=filtros.get('canal')
+                canal=filtros.get('canal'),
+                formato=formato
             )
         elif tipo_reporte == 'contable':
             generador_reportes_contables(
                 df_movimientos=df, 
-                agrupar_por=filtros.get('agrupar_por', 'cliente')
+                agrupar_por=filtros.get('agrupar_por', 'cliente'),
+                formato=formato
             )
         elif tipo_reporte == 'auditoria':
-            generador_reportes_auditoria(df)
+            generador_reportes_auditoria(
+                df_auditoria=df,
+                formato=formato)
             
     except Exception as error:
         print(f"Error critico en el proceso: {error}")
