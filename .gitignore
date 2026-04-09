@@ -15,5 +15,6 @@ src/database.ini
 reportes_generados/
 *.pdf
 *.txt
+
 # Incluir el archivo de requisitos para python
 !requirements.txt
