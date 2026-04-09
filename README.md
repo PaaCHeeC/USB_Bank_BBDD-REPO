@@ -30,7 +30,7 @@ La estructura del repositorio está diseñada de forma modular para separar la l
 - src/: Carpeta raíz del código fuente de la aplicación.
   - main.py: Archivo principal encargado de orquestar el inicio del sistema y la integración de módulos.
   - database.py: Módulo de persistencia que gestiona la conectividad y ejecución de sentencias sobre PostgreSQL.
-  - nterfaz_banco.py: Definición de la capa visual, formularios de filtrado y visualización de resultados.
+  - interfaz_banco.py: Definición de la capa visual, formularios de filtrado y visualización de resultados.
   - generador_reportes.py: Lógica de procesamiento de datos para la generación de archivos físicos.
 - reportes_generados/: Carpeta de destino automatizada para las salidas generadas en formato .txt y .pdf.
 - requirements.txt: Archivo de configuración de dependencias para el entorno de ejecución de Python.

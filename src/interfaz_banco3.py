@@ -2,11 +2,16 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 try:
-    from main import obtener_datos_y_generar
+    from mainv2 import obtener_datos_y_generar
 except ImportError:
-    print(
-        "Error: No se encontró main.py. La generación real de reportes no funcionará."
-    )
+    try:
+        from main import obtener_datos_y_generar
+
+        print("Aviso: se usará main.py porque mainv2.py no está disponible.")
+    except ImportError:
+        print(
+            "Error: No se encontró mainv2.py ni main.py. La generación real de reportes no funcionará."
+        )
 
 # paletas base para modo oscuro y claro
 COLORS_DARK = {
@@ -63,6 +68,7 @@ class InterfazBanco(ctk.CTk):
             "fin": self.entry_fin.get() if self.entry_fin.get() else None,
             "tipo": self.combo_filtro.get(),
             "canal": "Todos",
+            "estado_movimiento": self.combo_estado.get(),
             "agrupar_por": self.combo_filtro.get().lower()
             if self.seccion_activa == "contable"
             else "cliente",
@@ -99,6 +105,7 @@ class InterfazBanco(ctk.CTk):
         if seccion == "estadistico":
             self.titulo_seccion.configure(text="Reportes Estadísticos")
             self._mostrar_filtro()
+            self._ocultar_estado()
             self.combo_filtro.configure(
                 state="normal", values=["Todos", "Natural", "Juridico"]
             )
@@ -109,16 +116,23 @@ class InterfazBanco(ctk.CTk):
         elif seccion == "contable":
             self.titulo_seccion.configure(text="Reporte Contable")
             self._mostrar_filtro()
+            self._mostrar_estado()
             self.combo_filtro.configure(
                 state="normal", values=["Cliente", "Cuenta", "Canal", "Tarjeta"]
             )
             self.combo_filtro.set("Cliente")
+            self.combo_estado.configure(
+                state="normal",
+                values=["Todos", "Completado", "Pendiente", "Fallido", "Reversado"],
+            )
+            self.combo_estado.set("Todos")
             self.entry_inicio.configure(state="normal")
             self.entry_fin.configure(state="normal")
 
         elif seccion == "auditoria":
             self.titulo_seccion.configure(text="Auditoría y Limpieza")
             self._ocultar_filtro()
+            self._ocultar_estado()
             self.entry_inicio.configure(state="normal")
             self.entry_fin.configure(state="normal")
 
@@ -137,6 +151,19 @@ class InterfazBanco(ctk.CTk):
         # auditoría no usa filtro, así que lo retiramos de la vista
         self.lbl_filtro.grid_remove()
         self.combo_filtro.grid_remove()
+
+    def _mostrar_estado(self):
+        # estado de movimiento solo aplica para el reporte contable
+        self.lbl_estado.grid(
+            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+        )
+        self.combo_estado.grid(
+            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+        )
+
+    def _ocultar_estado(self):
+        self.lbl_estado.grid_remove()
+        self.combo_estado.grid_remove()
 
     def lerp_color(self, c1, c2, t):
         def h2r(h):
@@ -182,7 +209,12 @@ class InterfazBanco(ctk.CTk):
             self.desc_label.configure(text_color=c["text_secondary"])
             self.divider.configure(fg_color=c["card_border"])
 
-            for lbl in [self.lbl_inicio, self.lbl_fin, self.lbl_filtro]:
+            for lbl in [
+                self.lbl_inicio,
+                self.lbl_fin,
+                self.lbl_filtro,
+                self.lbl_estado,
+            ]:
                 lbl.configure(text_color=c["text_secondary"])
 
             input_bg = c["bg"] if ctk.get_appearance_mode() == "Dark" else "#FFFFFF"
@@ -198,6 +230,11 @@ class InterfazBanco(ctk.CTk):
                 text_color=c["text_primary"],
             )
             self.combo_filtro.configure(
+                fg_color=input_bg,
+                border_color=c["card_border"],
+                text_color=c["text_primary"],
+            )
+            self.combo_estado.configure(
                 fg_color=input_bg,
                 border_color=c["card_border"],
                 text_color=c["text_primary"],
@@ -378,6 +415,26 @@ class InterfazBanco(ctk.CTk):
         self.combo_filtro.grid(
             row=3, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
+
+        self.lbl_estado = ctk.CTkLabel(
+            self.form_frame,
+            text="Estado del Movimiento",
+            font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
+        )
+        self.lbl_estado.grid(
+            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+        )
+        self.combo_estado = ctk.CTkComboBox(
+            self.form_frame,
+            values=["Todos", "Completado", "Pendiente", "Fallido", "Reversado"],
+            height=45,
+            corner_radius=8,
+        )
+        self.combo_estado.set("Todos")
+        self.combo_estado.grid(
+            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+        )
+        self._ocultar_estado()
 
         btn_box = ctk.CTkFrame(self.frame_central, fg_color="transparent")
         btn_box.grid(row=3, column=0, pady=(35, 0), sticky="e")
