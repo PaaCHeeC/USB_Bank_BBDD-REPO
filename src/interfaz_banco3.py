@@ -63,12 +63,16 @@ class InterfazBanco(ctk.CTk):
     # arma los filtros y llama al generador real de reportes
     def comando_generar_reporte(self, formato):
         """Extrae datos de la UI y llama a la lógica de main.py"""
+        inicio = self.entry_inicio.get().strip()
+        fin = self.entry_fin.get().strip()
+        estado = self.combo_estado.get().strip()
+
         filtros = {
-            "inicio": self.entry_inicio.get() if self.entry_inicio.get() else None,
-            "fin": self.entry_fin.get() if self.entry_fin.get() else None,
+            "inicio": inicio if inicio else None,
+            "fin": fin if fin else None,
             "tipo": self.combo_filtro.get(),
             "canal": "Todos",
-            "estado_movimiento": self.combo_estado.get(),
+            "estado_movimiento": estado if estado else "Todos",
             "agrupar_por": self.combo_filtro.get().lower()
             if self.seccion_activa == "contable"
             else "cliente",

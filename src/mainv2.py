@@ -51,7 +51,7 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
         elif tipo_reporte == "contable":
             fecha_inicio = filtros.get("inicio")
             fecha_fin = filtros.get("fin")
-            estado_movimiento = filtros.get("estado_movimiento") or "Todos"
+            estado_movimiento = (filtros.get("estado_movimiento") or "Todos").strip()
 
             query = """
                 WITH movimientos_filtrados AS (
@@ -59,7 +59,7 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     FROM "usb_bank"."MOVIMIENTO" m
                     WHERE (%s IS NULL OR m.fecha >= %s::timestamp)
                       AND (%s IS NULL OR m.fecha < (%s::date + INTERVAL '1 day'))
-                      AND (%s = 'Todos' OR LOWER(m.estado) = LOWER(%s))
+                        AND (LOWER(%s) = 'todos' OR LOWER(m.estado) = LOWER(%s))
                 ),
                 movimientos_unificados AS (
                     SELECT
