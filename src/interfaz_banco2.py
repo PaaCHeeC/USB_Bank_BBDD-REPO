@@ -2,16 +2,11 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 try:
-    from mainv2 import obtener_datos_y_generar
+    from main import obtener_datos_y_generar
 except ImportError:
-    try:
-        from main import obtener_datos_y_generar
-
-        print("Aviso: se usará main.py porque mainv2.py no está disponible.")
-    except ImportError:
-        print(
-            "Error: No se encontró mainv2.py ni main.py. La generación real de reportes no funcionará."
-        )
+    print(
+        "Error: No se encontró main.py. La generación real de reportes no funcionará."
+    )
 
 # paletas base para modo oscuro y claro
 COLORS_DARK = {
