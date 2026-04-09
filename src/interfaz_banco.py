@@ -110,23 +110,22 @@ class InterfazBanco(ctk.CTk):
         linea_divisoria.grid(row=1, column=0, sticky="ew", padx=20, pady=(0, 20))
         
         self.btn_clientes = ctk.CTkButton(
-            self.frame_lateral, text="Reporte Estadístico", command=self.mostrar_reporte_clientes,
+            self.frame_lateral, text="Reporte Estadístico", command=self.mostrar_reporte_clientes, anchor="center",
             fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            anchor="w", height=45, font=ctk.CTkFont(size=14, weight="bold")
+            height=45, font=ctk.CTkFont(size=14, weight="bold")
         )
         self.btn_clientes.grid(row=2, column=0, padx=20, pady=5, sticky="ew")
 
         self.btn_dinero = ctk.CTkButton(
-            self.frame_lateral, text="Reporte Contable", command=self.mostrar_reporte_dinero,
+            self.frame_lateral, text="Reporte Contable", command=self.mostrar_reporte_dinero, anchor="center",
             fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
-            anchor="w", height=45, font=ctk.CTkFont(size=14, weight="bold")
+            height=45, font=ctk.CTkFont(size=14, weight="bold")
         )
         self.btn_dinero.grid(row=3, column=0, padx=20, pady=5, sticky="ew")
 
         self.btn_auditoria = ctk.CTkButton(
-            self.frame_lateral, text="Limpieza / Auditoría", command=self.mostrar_reporte_auditoria,
-            fg_color="transparent", text_color=("#8B0000", "#ff6666"), hover_color=("#ffcccc", "#5C0000"),
-            anchor="w", height=45, font=ctk.CTkFont(size=14, weight="bold")
+            self.frame_lateral, text="Limpieza / Auditoría", command=self.mostrar_reporte_auditoria, anchor="center",
+            fg_color="transparent", text_color=("#8B0000", "#ff6666"), hover_color=("#e37272", "#5C0000"), height=45, font=ctk.CTkFont(size=14, weight="bold")
         )
         self.btn_auditoria.grid(row=4, column=0, padx=20, pady=5, sticky="nwe") # sticky="nwe" para que quede arriba del espacio sobrante
 
@@ -191,14 +190,16 @@ class InterfazBanco(ctk.CTk):
         self.btn_pdf = ctk.CTkButton(
             self.frame_botones, text="Exportar a PDF", 
             fg_color="#1f538d", hover_color="#14375e",
+            anchor="center",
             width=160, height=45, font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.comando_generar_reporte("pdf")
         )
         self.btn_pdf.pack(side="right", padx=(10, 0))
 
         self.btn_txt = ctk.CTkButton(
-            self.frame_botones, text="Descargar TXT", 
-            fg_color="transparent", border_width=2,
+            self.frame_botones, text="Descargar TXT",
+            fg_color="#209f4d", hover_color="#0e5b29",
+            anchor="center",
             width=160, height=45, font=ctk.CTkFont(size=14, weight="bold"),
             command=lambda: self.comando_generar_reporte("txt")
         )
