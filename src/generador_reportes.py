@@ -12,9 +12,9 @@ def obtener_etiqueta_reporte(subcarpeta: str) -> str:
     if subcarpeta == "reportes_contables":
         return "Reporte Contable"
     if subcarpeta == "reportes_estadisticos":
-        return "Reporte Estadistico"
+        return "Reporte Estadístico"
     if subcarpeta == "reportes_auditoria":
-        return "Reporte de Auditoria"
+        return "Reporte de Auditoría"
     return "Reporte"
 
 
