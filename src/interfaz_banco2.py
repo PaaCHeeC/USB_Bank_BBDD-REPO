@@ -22,17 +22,21 @@ COLORS_DARK = {
     "btn_neutral_hover": "#484C60",
 }
 
+# modo claro ajustado:
+# - menos blanco puro
+# - tonos crema / gris suave
+# - hover más elegante y sin negro
 COLORS_LIGHT = {
-    "bg": "#F3F6FA",
-    "sidebar": "#FFFFFF",
-    "card": "#FFFFFF",
-    "card_border": "#E2E8F0",
-    "text_primary": "#1E293B",
-    "text_secondary": "#64748B",
+    "bg": "#E8E2D8",
+    "sidebar": "#F4EFE6",
+    "card": "#FBF7F1",
+    "card_border": "#D8CEC0",
+    "text_primary": "#2B2B2B",
+    "text_secondary": "#6B7280",
     "accent": "#2563EB",
     "accent_hover": "#1D4ED8",
-    "btn_neutral": "#DCE1E6",
-    "btn_neutral_hover": "#E2E8F0",
+    "btn_neutral": "#DDD6CB",
+    "btn_neutral_hover": "#CFC6B8",
 }
 
 
@@ -46,7 +50,6 @@ class InterfazBanco(ctk.CTk):
         self.current_colors = COLORS_DARK.copy()
         ctk.set_appearance_mode("dark")
 
-        # deja la ventana dividida entre navegación y contenido
         self.grid_columnconfigure(0, weight=0)
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
@@ -55,9 +58,7 @@ class InterfazBanco(ctk.CTk):
         self.crear_panel_central()
         self.update_ui_colors()
 
-    # arma los filtros y llama al generador real de reportes
     def comando_generar_reporte(self, formato):
-        """Extrae datos de la UI y llama a la lógica de main.py"""
         inicio = self.entry_inicio.get().strip()
         fin = self.entry_fin.get().strip()
         estado = self.combo_estado.get().strip()
@@ -74,7 +75,6 @@ class InterfazBanco(ctk.CTk):
             "formato_deseado": formato,
         }
 
-        # en contable forzamos un agrupado válido antes de generar
         if self.seccion_activa == "contable" and filtros["agrupar_por"] not in [
             "cuenta",
             "cliente",
@@ -87,7 +87,6 @@ class InterfazBanco(ctk.CTk):
             print(
                 f"\n--- Generando {self.seccion_activa.upper()} en formato {formato.upper()} ---"
             )
-            # Lanza la generación con la lógica externa
             obtener_datos_y_generar(self.seccion_activa, filtros)
             messagebox.showinfo(
                 "Éxito",
@@ -97,10 +96,8 @@ class InterfazBanco(ctk.CTk):
             messagebox.showerror("Error", f"No se pudo generar el reporte: {e}")
 
     def cambiar_seccion(self, seccion):
-        """Configura la interfaz según la sección seleccionada"""
         self.seccion_activa = seccion
 
-        # cada sección muestra los controles que realmente necesita
         if seccion == "estadistico":
             self.titulo_seccion.configure(text="Reportes Estadísticos")
             self._mostrar_filtro()
@@ -138,7 +135,6 @@ class InterfazBanco(ctk.CTk):
         self.actualizar_estado_botones()
 
     def _mostrar_filtro(self):
-        # el filtro vuelve a aparecer solo en las secciones que lo usan
         self.lbl_filtro.grid(
             row=2, column=0, columnspan=2, padx=30, pady=(15, 10), sticky="w"
         )
@@ -147,12 +143,10 @@ class InterfazBanco(ctk.CTk):
         )
 
     def _ocultar_filtro(self):
-        # auditoría no usa filtro, así que lo retiramos de la vista
         self.lbl_filtro.grid_remove()
         self.combo_filtro.grid_remove()
 
     def _mostrar_estado(self):
-        # estado de movimiento solo aplica para el reporte contable
         self.lbl_estado.grid(
             row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
         )
@@ -176,7 +170,6 @@ class InterfazBanco(ctk.CTk):
         return f"#{r:02x}{g:02x}{b:02x}"
 
     def animate_transition(self, target_palette, steps=10):
-        # transición suave entre temas para no cambiar todo de golpe
         start_palette = self.current_colors.copy()
         for i in range(1, steps + 1):
             t = i / steps
@@ -194,13 +187,14 @@ class InterfazBanco(ctk.CTk):
 
     def update_ui_colors(self, is_partial=False):
         c = self.current_colors
+        appearance = ctk.get_appearance_mode().lower()
+
         self.configure(fg_color=c["bg"])
         self.frame_lateral.configure(fg_color=c["sidebar"])
         self.frame_central.configure(fg_color=c["bg"])
         self.form_frame.configure(fg_color=c["card"], border_color=c["card_border"])
 
         if not is_partial:
-            # reaplica colores de textos y controles cuando cambia el tema completo
             self.logo_label.configure(text_color=c["text_primary"])
             self.sub_label.configure(text_color=c["text_secondary"])
             self.tema_label.configure(text_color=c["text_secondary"])
@@ -216,7 +210,7 @@ class InterfazBanco(ctk.CTk):
             ]:
                 lbl.configure(text_color=c["text_secondary"])
 
-            input_bg = c["bg"] if ctk.get_appearance_mode() == "Dark" else "#FFFFFF"
+            input_bg = c["card"] if appearance == "light" else c["bg"]
 
             self.entry_inicio.configure(
                 fg_color=input_bg,
@@ -232,14 +226,28 @@ class InterfazBanco(ctk.CTk):
                 fg_color=input_bg,
                 border_color=c["card_border"],
                 text_color=c["text_primary"],
+                button_color=c["btn_neutral"],
+                button_hover_color=c["btn_neutral_hover"],
+                dropdown_fg_color=c["card"],
+                dropdown_hover_color=c["btn_neutral_hover"],
+                dropdown_text_color=c["text_primary"],
             )
             self.combo_estado.configure(
                 fg_color=input_bg,
                 border_color=c["card_border"],
                 text_color=c["text_primary"],
+                button_color=c["btn_neutral"],
+                button_hover_color=c["btn_neutral_hover"],
+                dropdown_fg_color=c["card"],
+                dropdown_hover_color=c["btn_neutral_hover"],
+                dropdown_text_color=c["text_primary"],
             )
 
-            self.btn_pdf.configure(fg_color=c["accent"], hover_color=c["accent_hover"])
+            self.btn_pdf.configure(
+                fg_color=c["accent"],
+                hover_color=c["accent_hover"],
+                text_color="#FFFFFF",
+            )
             self.btn_txt.configure(
                 fg_color=c["btn_neutral"],
                 hover_color=c["btn_neutral_hover"],
@@ -248,7 +256,11 @@ class InterfazBanco(ctk.CTk):
             self.appearance_mode_menu.configure(
                 fg_color=c["btn_neutral"],
                 button_color=c["btn_neutral"],
+                button_hover_color=c["btn_neutral_hover"],
                 text_color=c["text_primary"],
+                dropdown_fg_color=c["card"],
+                dropdown_hover_color=c["btn_neutral_hover"],
+                dropdown_text_color=c["text_primary"],
             )
             self.actualizar_estado_botones()
 
@@ -258,14 +270,14 @@ class InterfazBanco(ctk.CTk):
         self.animate_transition(target)
 
     def actualizar_estado_botones(self):
-        # resalta la sección activa y deja las demás en estado neutro
         c = self.current_colors
-        
+        appearance = ctk.get_appearance_mode().lower()
+
         for btn in [self.btn_clientes, self.btn_dinero, self.btn_auditoria]:
             btn.configure(
-                fg_color="transparent", 
+                fg_color="transparent",
                 text_color=c["text_secondary"],
-                hover_color=c["btn_neutral"]
+                hover_color=c["btn_neutral"],
             )
 
         mapping = {"estadistico": self.btn_clientes, "contable": self.btn_dinero}
@@ -273,18 +285,16 @@ class InterfazBanco(ctk.CTk):
             mapping[self.seccion_activa].configure(
                 fg_color=c["btn_neutral"],
                 text_color=c["text_primary"],
-                hover_color=c["btn_neutral_hover"]
+                hover_color=c["btn_neutral_hover"],
             )
         elif self.seccion_activa == "auditoria":
-            is_light = ctk.get_appearance_mode().lower() == "light"
             self.btn_auditoria.configure(
-                fg_color="#FEE2E2" if is_light else "#2A1520",
-                text_color="#DC2626" if is_light else "#FF9B9B",
-                hover_color="#FCA5A5" if is_light else "#6A1515"
+                fg_color="#F5D7D7" if appearance == "light" else "#2A1520",
+                text_color="#B42318" if appearance == "light" else "#FF9B9B",
+                hover_color="#E9C1C1" if appearance == "light" else "#6A1515",
             )
 
     def _btn_nav(self, texto, cmd):
-        # botón lateral reusable para mantener la misma apariencia
         return ctk.CTkButton(
             self.frame_lateral,
             text=texto,
@@ -294,31 +304,33 @@ class InterfazBanco(ctk.CTk):
             text_color=self.current_colors["text_secondary"],
             hover_color=self.current_colors["btn_neutral"],
             corner_radius=10,
-            width=130,
-            height=48,
+            width=180,
+            height=50,
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
         )
 
     def crear_panel_lateral(self):
-        # barra lateral con identidad visual y navegación principal
-        self.frame_lateral = ctk.CTkFrame(self, width=261, corner_radius=0)
+        self.frame_lateral = ctk.CTkFrame(self, width=280, corner_radius=0)
         self.frame_lateral.grid(row=0, column=0, sticky="nsew")
         self.frame_lateral.grid_propagate(False)
         self.frame_lateral.grid_rowconfigure(5, weight=1)
+        self.frame_lateral.grid_columnconfigure(0, weight=1)
 
         self.logo_label = ctk.CTkLabel(
             self.frame_lateral,
             text="USB Bank",
-            font=ctk.CTkFont(family="Segoe UI", size=32, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=38, weight="bold"),
+            justify="center",
         )
-        self.logo_label.grid(row=0, column=0, padx=30, pady=(45, 5), sticky="news")
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(45, 5), sticky="ew")
 
         self.sub_label = ctk.CTkLabel(
             self.frame_lateral,
             text="Gestión de Reportes",
             font=ctk.CTkFont(family="Segoe UI", size=14),
+            justify="center",
         )
-        self.sub_label.grid(row=1, column=0, padx=30, pady=(0, 30), sticky="news")
+        self.sub_label.grid(row=1, column=0, padx=20, pady=(0, 30), sticky="ew")
 
         self.divider = ctk.CTkFrame(self.frame_lateral, height=1)
         self.divider.grid(row=2, column=0, sticky="ew", padx=30, pady=(0, 25))
@@ -326,24 +338,25 @@ class InterfazBanco(ctk.CTk):
         self.btn_clientes = self._btn_nav(
             "📊   Reporte Estadístico", lambda: self.cambiar_seccion("estadistico")
         )
-        self.btn_clientes.grid(row=3, column=0, padx=15, pady=5, sticky="ew")
+        self.btn_clientes.grid(row=3, column=0, padx=25, pady=6)
 
         self.btn_dinero = self._btn_nav(
-            "💰   Reporte Contable",  lambda: self.cambiar_seccion("contable")
+            "💰   Reporte Contable", lambda: self.cambiar_seccion("contable")
         )
-        self.btn_dinero.grid(row=4, column=0, padx=15, pady=5, sticky="ew")
+        self.btn_dinero.grid(row=4, column=0, padx=25, pady=6)
 
         self.btn_auditoria = self._btn_nav(
             "🔍   Auditoría / Limpieza", lambda: self.cambiar_seccion("auditoria")
         )
-        self.btn_auditoria.grid(row=5, column=0, padx=15, pady=5, sticky="nwe")
+        self.btn_auditoria.grid(row=5, column=0, padx=25, pady=6, sticky="n")
 
         self.tema_label = ctk.CTkLabel(
             self.frame_lateral,
             text="Preferencia visual",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
+            justify="center",
         )
-        self.tema_label.grid(row=6, column=0, padx=30, pady=(25, 8), sticky="wens")
+        self.tema_label.grid(row=6, column=0, padx=20, pady=(25, 8), sticky="ew")
 
         self.appearance_mode_menu = ctk.CTkOptionMenu(
             self.frame_lateral,
@@ -352,11 +365,10 @@ class InterfazBanco(ctk.CTk):
             corner_radius=10,
         )
         self.appearance_mode_menu.grid(
-            row=7, column=0, padx=15, pady=(0, 40), sticky="ew"
+            row=7, column=0, padx=25, pady=(0, 40), sticky="ew"
         )
 
     def crear_panel_central(self):
-        # área central donde vive el formulario y la exportación
         self.frame_central = ctk.CTkFrame(self, fg_color="transparent")
         self.frame_central.grid(row=0, column=1, padx=45, pady=45, sticky="nsew")
         self.frame_central.grid_columnconfigure(0, weight=1)
@@ -376,7 +388,7 @@ class InterfazBanco(ctk.CTk):
         self.desc_label.grid(row=1, column=0, sticky="w", pady=(0, 35))
 
         self.form_frame = ctk.CTkFrame(
-            self.frame_central, corner_radius=15, border_width=0
+            self.frame_central, corner_radius=15, border_width=1
         )
         self.form_frame.grid(row=2, column=0, sticky="nsew")
         self.form_frame.grid_columnconfigure((0, 1), weight=1)
@@ -387,6 +399,7 @@ class InterfazBanco(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
         )
         self.lbl_inicio.grid(row=0, column=0, padx=(30, 15), pady=(28, 10), sticky="w")
+
         self.entry_inicio = ctk.CTkEntry(
             self.form_frame, placeholder_text="YYYY-MM-DD", height=45, corner_radius=8
         )
@@ -400,6 +413,7 @@ class InterfazBanco(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
         )
         self.lbl_fin.grid(row=0, column=1, padx=(15, 30), pady=(28, 10), sticky="w")
+
         self.entry_fin = ctk.CTkEntry(
             self.form_frame, placeholder_text="YYYY-MM-DD", height=45, corner_radius=8
         )
@@ -413,6 +427,7 @@ class InterfazBanco(ctk.CTk):
         self.lbl_filtro.grid(
             row=2, column=0, columnspan=2, padx=30, pady=(15, 10), sticky="w"
         )
+
         self.combo_filtro = ctk.CTkComboBox(
             self.form_frame,
             values=["Todos", "Natural", "Jurídico"],
@@ -432,6 +447,7 @@ class InterfazBanco(ctk.CTk):
         self.lbl_estado.grid(
             row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
         )
+
         self.combo_estado = ctk.CTkComboBox(
             self.form_frame,
             values=["Todos", "Completado", "Pendiente", "Fallido", "Reversado"],
@@ -447,7 +463,6 @@ class InterfazBanco(ctk.CTk):
         btn_box = ctk.CTkFrame(self.frame_central, fg_color="transparent")
         btn_box.grid(row=3, column=0, pady=(35, 0), sticky="e")
 
-        # botones finales para exportar el reporte
         self.btn_txt = ctk.CTkButton(
             btn_box,
             text="Exportar a TXT",
