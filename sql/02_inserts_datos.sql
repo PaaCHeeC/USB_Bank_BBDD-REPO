@@ -71,7 +71,7 @@ INSERT INTO "CANAL_IVR" (id_canal, id_ivr) VALUES
 (23, 'IVR-VIP-001'), (24, 'IVR-FRD-001'), (27, 'IVR-TEC-001'), (28, 'IVR-REC-001')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "CANAL_ATM" (id_canal, id_atm, ubicacion, efectivo_disponible) VALUES 
+INSERT INTO "CANAL_ATM" (id_canal, id_atm, ubicacion, efectivo_disponible) VALUES
 (11, 'ATM-CCS-001', 'Sede Principal, Caracas', 50000.00),
 (12, 'ATM-VAL-001', 'Metropolis, Valencia', 45000.00),
 (13, 'ATM-MCB-001', 'Sambil, Maracaibo', 30000.00),
@@ -102,6 +102,7 @@ INSERT INTO "CLIENTE" (
 (18, 'Juridico', 2, '2024-08-15 09:30:00', 'agroinsumos_llano', 'hash_clave_018', 'Acarigua, Av. Principal', 'activo', 'J-40100018-6'),
 (19, 'Juridico', 2, '2025-03-01 10:00:00', 'soluciones_medicas', 'hash_clave_019', 'Caracas, Bello Monte', 'activo', 'J-40100019-7'),
 (20, 'Juridico', 2, '2025-04-10 11:00:00', 'grupolitoral', 'hash_clave_020', 'Puerto Ordaz, Alta Vista', 'activo', 'J-40100020-8'),
+(21, 'Natural', 1, '2023-12-01 10:00:00', 'rochibochhi', 'hash_clave_021', 'Caracas, Bello Monte', 'activo', NULL),
 (998, 'Natural', 1, '2023-12-01 10:00:00', 'inactivo1', 'test', 'Test 1', 'activo', 'V-99888777'),
 (999, 'Natural', 1, '2023-12-01 10:00:00', 'inactivo2', 'test', 'Test 2', 'activo', 'V-99888778')
 ON CONFLICT DO NOTHING;
@@ -129,7 +130,7 @@ INSERT INTO "DOCUMENTO_IDENTIDAD" (nro_documento, id_tipo_doc) VALUES
 ('V12345009', 'V'), ('V12345010', 'V'), ('V12345011', 'V'), ('P99302112', 'P'),
 ('J401000131', 'J'), ('J401000142', 'J'), ('J401000153', 'J'), ('J401000164', 'J'),
 ('J401000175', 'J'), ('J401000186', 'J'), ('J401000197', 'J'), ('G401000208', 'G'),
-('99888777', 'V'), ('99888778', 'V') 
+('99888777', 'V'), ('99888778', 'V')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "VALIDACION_KYC" (
@@ -160,7 +161,7 @@ INSERT INTO "VALIDACION_KYC" (
 (99, 999, 'Bajo', false, '2023-12-01', 'Ahorros', '99888778', '2030-01-01', 'huella_022', 'foto_022.jpg')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "EMAIL" (direccion_email, id_cliente, verificado, es_principal) VALUES 
+INSERT INTO "EMAIL" (direccion_email, id_cliente, verificado, es_principal) VALUES
 ('mruiz_oficial@gmail.com', 1, true, true),
 ('cfernandez_design@hotmail.com', 2, true, true),
 ('jmedina_contador@yahoo.com', 3, true, true),
@@ -179,7 +180,7 @@ INSERT INTO "EMAIL" (direccion_email, id_cliente, verificado, es_principal) VALU
 ('rlopez_oficial@gmail.com', 10, true, true)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "TELEFONO" (numero, id_cliente, fecha_verificacion, verificado, tipo, es_principal) VALUES 
+INSERT INTO "TELEFONO" (numero, id_cliente, fecha_verificacion, verificado, tipo, es_principal) VALUES
 ('04141234561', 1, CURRENT_TIMESTAMP, true, 'Movil', true),
 ('04241234562', 2, CURRENT_TIMESTAMP, true, 'Movil', true),
 ('04121234563', 3, CURRENT_TIMESTAMP, true, 'Movil', true),
@@ -231,7 +232,7 @@ INSERT INTO "CUENTA" (
 ('0000-TEST-0000-0999', 999, 1, 'Ahorro', '2023-12-02 10:00:00', 100.00, 1000.00, 1.00, 'VES', 'activa')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "DOMICILIACION_CUENTA" (nro_cuenta, nombre_servicio, monto_max_debito) VALUES 
+INSERT INTO "DOMICILIACION_CUENTA" (nro_cuenta, nombre_servicio, monto_max_debito) VALUES
 ('01010000000000000021', 'Corpoelec', 100.00),
 ('01010000000000000021', 'CANTV', 50.00),
 ('01010000000000000022', 'SimpleTV', 150.00),
@@ -244,23 +245,23 @@ INSERT INTO "DOMICILIACION_CUENTA" (nro_cuenta, nombre_servicio, monto_max_debit
 ('01010000000000000015', 'Seniat', 500.00)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "AFILIACION_CANAL" (id_cliente, tipo_canal, estado_acceso) VALUES 
+INSERT INTO "AFILIACION_CANAL" (id_cliente, tipo_canal, estado_acceso) VALUES
 (1, 'Digital', 'activo'),
 (2, 'Digital', 'activo'),
 (3, 'Electronico', 'activo'),
 (13, 'Digital', 'activo'),
 (14, 'Electronico', 'activo'),
-(4, 'Digital', 'activo'), 
+(4, 'Digital', 'activo'),
 (5, 'Digital', 'activo'),
-(6, 'Electronico', 'activo'), 
+(6, 'Electronico', 'activo'),
 (7, 'Electronico', 'activo'),
-(8, 'Digital', 'activo'), 
+(8, 'Digital', 'activo'),
 (15, 'Digital', 'activo'),
 (9, 'Digital', 'activo'),
 (10, 'Electronico', 'activo')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "CONTRATO" (id_cliente, nro_cuenta, firma_digital, tyc) VALUES 
+INSERT INTO "CONTRATO" (id_cliente, nro_cuenta, firma_digital, tyc) VALUES
 (1, '01010000000000000001', 'hash_firma_1', 'Aceptado Terminos V1.0'),
 (1, '01010000000000000021', 'hash_firma_1b', 'Aceptado Terminos V1.0'),
 (2, '01010000000000000002', 'hash_firma_2', 'Aceptado Terminos V1.0'),
@@ -275,7 +276,7 @@ INSERT INTO "CONTRATO" (id_cliente, nro_cuenta, firma_digital, tyc) VALUES
 (8, '01010000000000000008', 'hash_firma_8', 'Aceptado Terminos V1.0')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "AFILIACION_PAGOMOVIL" (numero_telefono, nro_cuenta) VALUES 
+INSERT INTO "AFILIACION_PAGOMOVIL" (numero_telefono, nro_cuenta) VALUES
 ('04141234561', '01010000000000000001'),
 ('04241234562', '01010000000000000002'),
 ('04121234563', '01010000000000000003'),
@@ -316,28 +317,28 @@ INSERT INTO "TARJETA" (nro_tarjeta, nro_cuenta, id_canal_emisor, tipo_tarjeta, i
 ('6398760000000019', '01010000000000000019', 19, 'Debito', 3, 'Emision', 'Fisica', 'pin', '2030-01-01', '119', 'activa'),
 ('6398760000000020', '01010000000000000020', 19, 'Debito', 3, 'Emision', 'Fisica', 'pin', '2030-01-01', '120', 'activa'),
 ('9999000011110998', '0000-TEST-0000-0998', 1, 'Debito', 1, 'Demo', 'Fisica', 'pin', '2030-01-01', '123', 'activa'),
-('9999000011110999', '0000-TEST-0000-0999', 1, 'Debito', 1, 'Demo', 'Fisica', 'pin', '2030-01-01', '123', 'activa') 
+('9999000011110999', '0000-TEST-0000-0999', 1, 'Debito', 1, 'Demo', 'Fisica', 'pin', '2030-01-01', '123', 'activa')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "TARJETA_CREDITO" (nro_tarjeta, fondo_asociado, saldo_consumido, limite_credito, tasa_interes, fecha_corte) VALUES
 ('5123450000000003', 'Fondo Propio', 0.00, 1000.00, 24.00, '2030-01-01'), ('5123450000000005', 'Fondo Propio', 0.00, 1500.00, 24.00, '2030-01-01'),
 ('5123450000000008', 'Fondo Propio', 0.00, 2000.00, 24.00, '2030-01-01'), ('5123450000000010', 'Fondo Propio', 0.00, 2500.00, 24.00, '2030-01-01'),
-('5123450000000012', 'Fondo Propio', 0.00, 3000.00, 24.00, '2030-01-01'), ('5123450000000021', 'Fondo Propio', 0.00, 2000.00, 24.00, '2030-01-01'), 
+('5123450000000012', 'Fondo Propio', 0.00, 3000.00, 24.00, '2030-01-01'), ('5123450000000021', 'Fondo Propio', 0.00, 2000.00, 24.00, '2030-01-01'),
 ('5123450000000023', 'Fondo Corporativo', 0.00, 10000.00, 18.00, '2030-01-01'), ('5123450000000033', 'Fondo Corporativo', 0.00, 15000.00, 18.00, '2030-01-01'),
-('5123450000000024', 'Fondo Corporativo', 0.00, 5000.00, 18.00, '2030-01-01') 
+('5123450000000024', 'Fondo Corporativo', 0.00, 5000.00, 18.00, '2030-01-01')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "TARJETA_DEBITO" (nro_tarjeta, fondo_asociado) VALUES
-('4012340000000001', 'Fondo Propio'), ('4012340000000031', 'Fondo Propio'), ('4012340000000002', 'Fondo Propio'), 
-('4012340000000022', 'Fondo Propio'), ('4012340000000004', 'Fondo Propio'), ('4012340000000006', 'Fondo Propio'), 
+('4012340000000001', 'Fondo Propio'), ('4012340000000031', 'Fondo Propio'), ('4012340000000002', 'Fondo Propio'),
+('4012340000000022', 'Fondo Propio'), ('4012340000000004', 'Fondo Propio'), ('4012340000000006', 'Fondo Propio'),
 ('4012340000000007', 'Fondo Propio'), ('4012340000000009', 'Fondo Propio'), ('4012340000000011', 'Fondo Propio'),
-('6398760000000013', 'Fondo Corporativo'), ('6398760000000014', 'Fondo Corporativo'), ('6398760000000015', 'Fondo Corporativo'), 
+('6398760000000013', 'Fondo Corporativo'), ('6398760000000014', 'Fondo Corporativo'), ('6398760000000015', 'Fondo Corporativo'),
 ('6398760000000016', 'Fondo Corporativo'), ('6398760000000017', 'Fondo Corporativo'), ('6398760000000018', 'Fondo Corporativo'),
 ('6398760000000019', 'Fondo Corporativo'), ('6398760000000020', 'Fondo Corporativo'),
-('9999000011110998', 'Fondo Demo'), ('9999000011110999', 'Fondo Demo') 
+('9999000011110998', 'Fondo Demo'), ('9999000011110999', 'Fondo Demo')
 ON CONFLICT DO NOTHING;
 
-INSERT INTO "PERMISOS_TARJETA" (nro_tarjeta, permiso_ecommerce, permiso_internacional) VALUES 
+INSERT INTO "PERMISOS_TARJETA" (nro_tarjeta, permiso_ecommerce, permiso_internacional) VALUES
 ('4012340000000001', true, false),
 ('5123450000000021', true, true),
 ('4012340000000031', true, false),
@@ -352,9 +353,9 @@ INSERT INTO "PERMISOS_TARJETA" (nro_tarjeta, permiso_ecommerce, permiso_internac
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO" (
-    nro_referencia, id_tipo_mov, id_canal, id_banco_origen, id_banco_destino, 
-    nro_cuenta_origen, nro_cuenta_destino, descripcion_mov, 
-    monto_ingreso, monto_egreso, monto_comision, estado, fecha, 
+    nro_referencia, id_tipo_mov, id_canal, id_banco_origen, id_banco_destino,
+    nro_cuenta_origen, nro_cuenta_destino, descripcion_mov,
+    monto_ingreso, monto_egreso, monto_comision, estado, fecha,
     saldo_origen_previo, saldo_origen_nuevo, saldo_destino_previo, saldo_destino_nuevo, ubi_transaccion
 ) VALUES
 ('REF0001', 2, 15, 1, 1, '01010000000000000001', '01010000000000000013', 'Pago POS', 0.00, 50.00, 0.50, 'Procesado', CURRENT_TIMESTAMP, 1500.00, 1449.50, 1000.00, 1050.00, 'Caracas'),
@@ -424,25 +425,25 @@ INSERT INTO "MOVIMIENTO" (
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO_PAGO_POS" (nro_referencia, nro_tarjeta) VALUES
-('REF0001', '4012340000000001'), ('REF0002', '4012340000000002'), ('REF0003', '5123450000000003'), 
+('REF0001', '4012340000000001'), ('REF0002', '4012340000000002'), ('REF0003', '5123450000000003'),
 ('REF0008', '5123450000000008'), ('REF0013', '6398760000000013'), ('REF0017', '6398760000000017'),
 ('REF0018', '6398760000000018'), ('REF0019', '6398760000000019'), ('REF0020', '6398760000000020'),
 ('REF0022', '4012340000000022'), ('REF0023', '5123450000000023'),
 ('REF1001', '4012340000000001'), ('REF1007', '4012340000000007'), ('REF1012', '4012340000000002'),
-('REF1017', '4012340000000009') 
+('REF1017', '4012340000000009')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO_PAGO_ECOMMERCE" (nro_referencia, nro_tarjeta, pagina_web) VALUES
-('REF0004', '4012340000000004', 'www.repuestos24.com'), 
+('REF0004', '4012340000000004', 'www.repuestos24.com'),
 ('REF0009', '4012340000000009', 'www.insumospro.com'),
-('REF0014', '6398760000000014', 'www.logisticashop.com'), 
+('REF0014', '6398760000000014', 'www.logisticashop.com'),
 ('REF0021', '5123450000000021', 'www.streamplus.com'),
 ('REF0032', '5123450000000003', 'www.amazon.com'),
 ('REF0033', '4012340000000004', 'www.netflix.com'),
 ('REF1002', '4012340000000002', 'www.marketglobal.com'),
 ('REF1008', '5123450000000010', 'www.tecnotienda.com'),
 ('REF1013', '5123450000000003', 'www.softwarepro.com'),
-('REF1018', '5123450000000010', 'www.electroshop.com') 
+('REF1018', '5123450000000010', 'www.electroshop.com')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO_RETIRO_ATM" (nro_referencia, nro_tarjeta) VALUES
@@ -450,7 +451,7 @@ INSERT INTO "MOVIMIENTO_RETIRO_ATM" (nro_referencia, nro_tarjeta) VALUES
 ('REF0010', '5123450000000010'), ('REF0011', '4012340000000011'), ('REF0012', '5123450000000012'),
 ('REF0015', '6398760000000015'), ('REF0016', '6398760000000016'),
 ('REF1003', '5123450000000003'), ('REF1009', '4012340000000011'),
-('REF1014', '5123450000000005'), ('REF1019', '5123450000000012') 
+('REF1014', '5123450000000005'), ('REF1019', '5123450000000012')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO_TRANSFERENCIA" (nro_referencia, medio) VALUES
@@ -465,7 +466,7 @@ INSERT INTO "MOVIMIENTO_TRANSFERENCIA" (nro_referencia, medio) VALUES
 ('REF1005', 'App Movil'),
 ('REF1006', 'Portal Web'),
 ('REF1011', 'Portal Web'),
-('REF1016', 'App Movil') 
+('REF1016', 'App Movil')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO "MOVIMIENTO_PAGOMOVIL" (nro_referencia, pm_telefono, pm_ci) VALUES
@@ -480,5 +481,5 @@ INSERT INTO "MOVIMIENTO_PAGOMOVIL" (nro_referencia, pm_telefono, pm_ci) VALUES
 ('REF1004', '04142223344', 'V14725836'),
 ('REF1010', '04143334455', 'V25836914'),
 ('REF1015', '04144445566', 'V36914725'),
-('REF1020', '04145556688', 'V95175384') 
+('REF1020', '04145556688', 'V95175384')
 ON CONFLICT DO NOTHING;
