@@ -281,18 +281,19 @@ class InterfazBanco(ctk.CTk):
             self.frame_lateral,
             text=texto,
             command=cmd,
-            anchor="w",
+            anchor="center",
             fg_color="transparent",
             text_color=self.current_colors["text_secondary"],
             hover_color=self.current_colors["btn_neutral"],
             corner_radius=10,
+            width=130,
             height=48,
             font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
         )
 
     def crear_panel_lateral(self):
         # barra lateral con identidad visual y navegación principal
-        self.frame_lateral = ctk.CTkFrame(self, width=280, corner_radius=0)
+        self.frame_lateral = ctk.CTkFrame(self, width=260, corner_radius=0)
         self.frame_lateral.grid(row=0, column=0, sticky="nsew")
         self.frame_lateral.grid_propagate(False)
         self.frame_lateral.grid_rowconfigure(5, weight=1)
@@ -300,16 +301,16 @@ class InterfazBanco(ctk.CTk):
         self.logo_label = ctk.CTkLabel(
             self.frame_lateral,
             text="USB Bank",
-            font=ctk.CTkFont(family="Segoe UI", size=26, weight="bold"),
+            font=ctk.CTkFont(family="Segoe UI", size=32, weight="bold"),
         )
-        self.logo_label.grid(row=0, column=0, padx=30, pady=(45, 5), sticky="w")
+        self.logo_label.grid(row=0, column=0, padx=30, pady=(45, 5), sticky="news")
 
         self.sub_label = ctk.CTkLabel(
             self.frame_lateral,
             text="Gestión de Reportes",
-            font=ctk.CTkFont(family="Segoe UI", size=12),
+            font=ctk.CTkFont(family="Segoe UI", size=14),
         )
-        self.sub_label.grid(row=1, column=0, padx=30, pady=(0, 30), sticky="w")
+        self.sub_label.grid(row=1, column=0, padx=30, pady=(0, 30), sticky="news")
 
         self.divider = ctk.CTkFrame(self.frame_lateral, height=1)
         self.divider.grid(row=2, column=0, sticky="ew", padx=30, pady=(0, 25))
@@ -320,7 +321,7 @@ class InterfazBanco(ctk.CTk):
         self.btn_clientes.grid(row=3, column=0, padx=15, pady=5, sticky="ew")
 
         self.btn_dinero = self._btn_nav(
-            "💰   Reporte Contable", lambda: self.cambiar_seccion("contable")
+            "💰   Reporte Contable",  lambda: self.cambiar_seccion("contable")
         )
         self.btn_dinero.grid(row=4, column=0, padx=15, pady=5, sticky="ew")
 
@@ -367,7 +368,7 @@ class InterfazBanco(ctk.CTk):
         self.desc_label.grid(row=1, column=0, sticky="w", pady=(0, 35))
 
         self.form_frame = ctk.CTkFrame(
-            self.frame_central, corner_radius=15, border_width=1
+            self.frame_central, corner_radius=15, border_width=0
         )
         self.form_frame.grid(row=2, column=0, sticky="nsew")
         self.form_frame.grid_columnconfigure((0, 1), weight=1)

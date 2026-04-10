@@ -62,6 +62,11 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
             fila = table.row()
             for item in fila_datos:
                 fila.cell(item)
+                
+    if subcarpeta == 'reportes_estadisticos':
+        pdf.ln(5) 
+        pdf.set_font("helvetica", style="I", size=10)
+        pdf.cell(0, 10, f"Saldo Total: ${datos['Saldo_Total'].astype(float).sum():,.2f}\n", align="L", new_x="LMARGIN", new_y="NEXT")
 
     # Guardo el archivo
     if not nombre_reporte.endswith(".pdf"):
@@ -140,7 +145,7 @@ def generador_reportes_estadisticos(
             f.write(
                 f"Fechas: {fecha_inicio} a {fecha_fin} | Tipo: {tipo_cliente} | Canal: {canal}\n"
             )
-            f.write("-" * 80 + "\n\n")
+            f.write("-" * 85 + "\n\n")
 
             if df_final.empty:
                 f.write("No se encontraron clientes con los criterios especificados.\n")
@@ -446,7 +451,7 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
             f.write(
                 f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
-            f.write("-" * 80 + "\n\n")
+            f.write("-" * 85 + "\n\n")
             f.write(df_auditoria.to_string(index=False))
 
         print(f"[TXT OK] Reporte de auditoría generado en: {nombre_archivo}")
