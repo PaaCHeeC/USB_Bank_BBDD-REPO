@@ -26,6 +26,8 @@ print("Creacion de las carpetas de reportes completada.")
 def exportar_pdf(datos, nombre_reporte, subcarpeta):
     pdf = FPDF()
     pdf.add_page()
+    
+    pdf.set_line_width(0.2) 
 
     # Encabezado del pdf
     pdf.set_font("helvetica", style="B", size=16)
