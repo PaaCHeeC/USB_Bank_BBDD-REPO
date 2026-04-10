@@ -1,5 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
+import platform
+from PIL import Image, ImageDraw
 
 try:
     from main import obtener_datos_y_generar
@@ -48,6 +50,13 @@ class InterfazBanco(ctk.CTk):
 
         self.seccion_activa = "estadistico"
         self.current_colors = COLORS_DARK.copy()
+        self.es_linux = platform.system().lower() == "linux"
+        self.nav_font = (
+            ctk.CTkFont(size=14, weight="bold")
+            if self.es_linux
+            else ctk.CTkFont(family="Segoe UI", size=14, weight="bold")
+        )
+        self.nav_icons = self._crear_iconos_nav(size=18)
         ctk.set_appearance_mode("dark")
 
         self.grid_columnconfigure(0, weight=0)
@@ -57,6 +66,52 @@ class InterfazBanco(ctk.CTk):
         self.crear_panel_lateral()
         self.crear_panel_central()
         self.update_ui_colors()
+
+    def _icono_estadistico(self, size):
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        color = (59, 130, 246, 255)
+        base = size - 3
+        draw.rectangle((3, base - 6, 6, base), fill=color)
+        draw.rectangle((8, base - 10, 11, base), fill=color)
+        draw.rectangle((13, base - 14, 16, base), fill=color)
+        return img
+
+    def _icono_contable(self, size):
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse((2, 2, size - 2, size - 2), fill=(245, 158, 11, 255))
+        draw.ellipse((4, 4, size - 4, size - 4), outline=(146, 64, 14, 255), width=2)
+        draw.line((size // 2, 5, size // 2, size - 5), fill=(146, 64, 14, 255), width=2)
+        draw.arc((size // 2 - 4, 5, size - 6, size // 2), start=90, end=270, fill=(146, 64, 14, 255), width=2)
+        draw.arc((6, size // 2, size // 2 + 4, size - 5), start=270, end=90, fill=(146, 64, 14, 255), width=2)
+        return img
+
+    def _icono_auditoria(self, size):
+        img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(img)
+        draw.ellipse((2, 2, size - 8, size - 8), outline=(14, 116, 144, 255), width=3)
+        draw.line((size - 8, size - 8, size - 2, size - 2), fill=(14, 116, 144, 255), width=3)
+        return img
+
+    def _crear_iconos_nav(self, size=18):
+        return {
+            "estadistico": ctk.CTkImage(
+                light_image=self._icono_estadistico(size),
+                dark_image=self._icono_estadistico(size),
+                size=(size, size),
+            ),
+            "contable": ctk.CTkImage(
+                light_image=self._icono_contable(size),
+                dark_image=self._icono_contable(size),
+                size=(size, size),
+            ),
+            "auditoria": ctk.CTkImage(
+                light_image=self._icono_auditoria(size),
+                dark_image=self._icono_auditoria(size),
+                size=(size, size),
+            ),
+        }
 
     def comando_generar_reporte(self, formato):
         inicio = self.entry_inicio.get().strip()
@@ -294,11 +349,13 @@ class InterfazBanco(ctk.CTk):
                 hover_color="#E9C1C1" if appearance == "light" else "#6A1515",
             )
 
-    def _btn_nav(self, texto, cmd):
+    def _btn_nav(self, seccion, texto, cmd):
         return ctk.CTkButton(
             self.frame_lateral,
             text=texto,
             command=cmd,
+            image=self.nav_icons.get(seccion),
+            compound="left",
             anchor="center",
             fg_color="transparent",
             text_color=self.current_colors["text_secondary"],
@@ -306,7 +363,7 @@ class InterfazBanco(ctk.CTk):
             corner_radius=10,
             width=180,
             height=50,
-            font=ctk.CTkFont(family="Segoe UI", size=14, weight="bold"),
+            font=self.nav_font,
         )
 
     def crear_panel_lateral(self):
@@ -336,17 +393,23 @@ class InterfazBanco(ctk.CTk):
         self.divider.grid(row=2, column=0, sticky="ew", padx=30, pady=(0, 25))
 
         self.btn_clientes = self._btn_nav(
-            "📊   Reporte Estadístico", lambda: self.cambiar_seccion("estadistico")
+            "estadistico",
+            "Reporte Estadístico",
+            lambda: self.cambiar_seccion("estadistico"),
         )
         self.btn_clientes.grid(row=3, column=0, padx=25, pady=6)
 
         self.btn_dinero = self._btn_nav(
-            "💰   Reporte Contable", lambda: self.cambiar_seccion("contable")
+            "contable",
+            "Reporte Contable",
+            lambda: self.cambiar_seccion("contable"),
         )
         self.btn_dinero.grid(row=4, column=0, padx=25, pady=6)
 
         self.btn_auditoria = self._btn_nav(
-            "🔍   Auditoría / Limpieza", lambda: self.cambiar_seccion("auditoria")
+            "auditoria",
+            "Auditoría / Limpieza",
+            lambda: self.cambiar_seccion("auditoria"),
         )
         self.btn_auditoria.grid(row=5, column=0, padx=25, pady=6, sticky="n")
 
