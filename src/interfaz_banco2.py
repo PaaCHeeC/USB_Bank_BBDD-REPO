@@ -19,11 +19,11 @@ COLORS_DARK = {
     "accent": "#3B82F6",
     "accent_hover": "#2563EB",
     "btn_neutral": "#252938",
-    "btn_neutral_hover": "#2E3348",
+    "btn_neutral_hover": "#484C60",
 }
 
 COLORS_LIGHT = {
-    "bg": "#F8FAFC",
+    "bg": "#F3F6FA",
     "sidebar": "#FFFFFF",
     "card": "#FFFFFF",
     "card_border": "#E2E8F0",
@@ -31,7 +31,7 @@ COLORS_LIGHT = {
     "text_secondary": "#64748B",
     "accent": "#2563EB",
     "accent_hover": "#1D4ED8",
-    "btn_neutral": "#F1F5F9",
+    "btn_neutral": "#DCE1E6",
     "btn_neutral_hover": "#E2E8F0",
 }
 
@@ -260,19 +260,27 @@ class InterfazBanco(ctk.CTk):
     def actualizar_estado_botones(self):
         # resalta la sección activa y deja las demás en estado neutro
         c = self.current_colors
+        
         for btn in [self.btn_clientes, self.btn_dinero, self.btn_auditoria]:
-            btn.configure(fg_color="transparent", text_color=c["text_secondary"])
+            btn.configure(
+                fg_color="transparent", 
+                text_color=c["text_secondary"],
+                hover_color=c["btn_neutral"]
+            )
 
         mapping = {"estadistico": self.btn_clientes, "contable": self.btn_dinero}
         if self.seccion_activa in mapping:
             mapping[self.seccion_activa].configure(
-                fg_color=c["btn_neutral"], text_color=c["text_primary"]
+                fg_color=c["btn_neutral"],
+                text_color=c["text_primary"],
+                hover_color=c["btn_neutral_hover"]
             )
         elif self.seccion_activa == "auditoria":
             is_light = ctk.get_appearance_mode().lower() == "light"
             self.btn_auditoria.configure(
                 fg_color="#FEE2E2" if is_light else "#2A1520",
                 text_color="#DC2626" if is_light else "#FF9B9B",
+                hover_color="#FCA5A5" if is_light else "#6A1515"
             )
 
     def _btn_nav(self, texto, cmd):
@@ -293,7 +301,7 @@ class InterfazBanco(ctk.CTk):
 
     def crear_panel_lateral(self):
         # barra lateral con identidad visual y navegación principal
-        self.frame_lateral = ctk.CTkFrame(self, width=260, corner_radius=0)
+        self.frame_lateral = ctk.CTkFrame(self, width=261, corner_radius=0)
         self.frame_lateral.grid(row=0, column=0, sticky="nsew")
         self.frame_lateral.grid_propagate(False)
         self.frame_lateral.grid_rowconfigure(5, weight=1)
@@ -335,7 +343,7 @@ class InterfazBanco(ctk.CTk):
             text="Preferencia visual",
             font=ctk.CTkFont(family="Segoe UI", size=11, weight="bold"),
         )
-        self.tema_label.grid(row=6, column=0, padx=30, pady=(25, 8), sticky="w")
+        self.tema_label.grid(row=6, column=0, padx=30, pady=(25, 8), sticky="wens")
 
         self.appearance_mode_menu = ctk.CTkOptionMenu(
             self.frame_lateral,
