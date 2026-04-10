@@ -1,5 +1,5 @@
 # MAKEFILE - USB BANK (Automatización de Entorno y Despliegue)
-# USO: 
+# USO:
 # 1. "make install" -> Prepara la computadora desde cero (Instala todo)
 # 2. "make run"     -> Ejecuta la aplicación gráfica
 # 3. "make gen"	    -> Borra reportes y cache generados (.txt .pdf)
@@ -43,6 +43,7 @@ deps:
 # COMANDO PARA EJECUTAR EL BANCO
 run:
 	@echo "Iniciando USB Bank..."
+	$(PYTHON) src/main.py
 	$(PYTHON) src/interfaz_banco.py
 
 # COMANDO PARA LIMPIAR REPORTES Y CACHE
