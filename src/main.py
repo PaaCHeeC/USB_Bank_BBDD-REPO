@@ -76,16 +76,42 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     WHERE LOWER(c.estado) = 'activo'
                 ) kpi
                 CROSS JOIN (
+                    WITH movimientos_filtrados AS (
+                        SELECT m.*
+                        FROM usb_bank."MOVIMIENTO" m
+                        WHERE (%s IS NULL OR m.fecha >= %s::timestamp)
+                          AND (%s IS NULL OR m.fecha < (%s::date + INTERVAL '1 day'))
+                    ),
+                    movimientos_unificados AS (
+                        SELECT
+                            m.nro_cuenta_origen AS nro_cuenta,
+                            m.monto_egreso AS egreso,
+                            0.00::numeric AS ingreso
+                        FROM movimientos_filtrados m
+
+                        UNION ALL
+
+                        SELECT
+                            m.nro_cuenta_destino AS nro_cuenta,
+                            0.00::numeric AS egreso,
+                            m.monto_ingreso AS ingreso
+                        FROM movimientos_filtrados m
+                    )
                     SELECT
-                        COALESCE(SUM(m.monto_ingreso), 0.00) AS total_ingresos,
-                        COALESCE(SUM(m.monto_egreso), 0.00) AS total_egresos
-                    FROM usb_bank."MOVIMIENTO" m
-                    WHERE (%s IS NULL OR m.fecha >= %s::timestamp)
-                      AND (%s IS NULL OR m.fecha < (%s::date + INTERVAL '1 day'))
+                        COALESCE(SUM(mu.ingreso), 0.00) AS total_ingresos,
+                        COALESCE(SUM(mu.egreso), 0.00) AS total_egresos
+                    FROM movimientos_unificados mu
+                    JOIN usb_bank."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
+                    WHERE (mu.ingreso + mu.egreso) > 0
                 ) mov
                 ORDER BY "CLIENTE".id_cliente;
             """
-            query_params = (fecha_inicio, fecha_inicio, fecha_fin, fecha_fin)
+            query_params = (
+                fecha_inicio,
+                fecha_inicio,
+                fecha_fin,
+                fecha_fin,
+            )
 
         elif tipo_reporte == "contable":
             fecha_inicio = filtros.get("inicio")

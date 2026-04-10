@@ -287,7 +287,6 @@ def generador_reportes_estadisticos(
     total_tarjetas_activas = 0
     onboarding_portal_web = 0
     onboarding_app_movil = 0
-    onboarding_ivr_otros = 0
 
     if not df_clientes.empty:
         if "Total_Ingresos_Periodo" in df_clientes.columns:
@@ -332,13 +331,6 @@ def generador_reportes_estadisticos(
                 .fillna(0)
                 .max()
             )
-        if "Onboarding_IVR_Otros" in df_clientes.columns:
-            onboarding_ivr_otros = int(
-                pd.to_numeric(df_clientes["Onboarding_IVR_Otros"], errors="coerce")
-                .fillna(0)
-                .max()
-            )
-
     balance_neto_periodo = total_ingresos_periodo - total_egresos_periodo
 
     if formato.lower() in ["txt", "ambos"]:
@@ -361,13 +353,11 @@ def generador_reportes_estadisticos(
                 f.write(df_final_export.to_string(index=False))
                 f.write("\n\n" + "-" * 80 + "\n")
                 if "Saldo_Total" in df_final.columns:
-                    f.write(f"SALDO TOTAL: VES {formatear_monto_ves(saldo_total_general)}\n")
+                    f.write(
+                        f"SALDO TOTAL: VES {formatear_monto_ves(saldo_total_general)}\n"
+                    )
 
-                titulo_rango_txt = (
-                    f"RESUMEN DE OPERACIONES ({rango_fechas.upper()})"
-                    if "Todos los registros" not in rango_fechas
-                    else "RESUMEN DE OPERACIONES (TODOS LOS REGISTROS HASTA LA FECHA)"
-                )
+                titulo_rango_txt = f"Resumen de Operaciones ({rango_fechas})"
                 f.write("\n")
                 f.write(f"{titulo_rango_txt}\n")
                 f.write("-" * len(titulo_rango_txt) + "\n")
@@ -381,8 +371,9 @@ def generador_reportes_estadisticos(
                     f"BALANCE NETO DEL PERIODO: VES {formatear_monto_ves(balance_neto_periodo)}\n"
                 )
 
-                f.write("\nKPIs UNIVERSALES DEL SISTEMA (EN TIEMPO REAL)\n")
-                f.write("-" * 46 + "\n")
+                titulo_info_sistema_txt = "Información del Sistema"
+                f.write(f"\n{titulo_info_sistema_txt}\n")
+                f.write("-" * len(titulo_info_sistema_txt) + "\n")
                 f.write(f"TOTAL CLIENTES ACTIVOS: {total_clientes_activos}\n")
                 f.write(f"TOTAL CUENTAS ACTIVAS: {total_cuentas_activas}\n")
                 f.write(f"TOTAL TARJETAS ACTIVAS: {total_tarjetas_activas}\n")
@@ -391,9 +382,6 @@ def generador_reportes_estadisticos(
                 )
                 f.write(
                     f"Onboarding por Canal - App Movil: {onboarding_app_movil} clientes\n"
-                )
-                f.write(
-                    f"Onboarding por Canal - IVR / Otros: {onboarding_ivr_otros} clientes\n"
                 )
 
         print(f"[TXT OK] Reporte estadístico generado en: {nombre_archivo}")
@@ -408,11 +396,7 @@ def generador_reportes_estadisticos(
             rango_fechas,
             f"Tipo: {tipo_cliente} | Canal: {canal}",
         ]
-        titulo_rango = (
-            f"RESUMEN DE OPERACIONES ({rango_fechas.upper()})"
-            if "Todos los registros" not in rango_fechas
-            else "RESUMEN DE OPERACIONES (TODOS LOS REGISTROS HASTA LA FECHA)"
-        )
+        titulo_rango = f"Resumen de Operaciones ({rango_fechas})"
         secciones_resumen_estadistico = [
             {
                 "titulo": titulo_rango,
@@ -432,7 +416,7 @@ def generador_reportes_estadisticos(
                 ],
             },
             {
-                "titulo": "KPIs UNIVERSALES DEL SISTEMA (EN TIEMPO REAL)",
+                "titulo": "Información del Sistema",
                 "filas": [
                     ("TOTAL CLIENTES ACTIVOS", total_clientes_activos),
                     ("TOTAL CUENTAS ACTIVAS", total_cuentas_activas),
@@ -444,10 +428,6 @@ def generador_reportes_estadisticos(
                     (
                         "Onboarding por Canal - App Movil",
                         f"{onboarding_app_movil} clientes",
-                    ),
-                    (
-                        "Onboarding por Canal - IVR / Otros",
-                        f"{onboarding_ivr_otros} clientes",
                     ),
                 ],
             },
