@@ -18,18 +18,25 @@ RETURNS TABLE (
     nro_cuenta VARCHAR(20),
     id_cliente INTEGER,
     titular TEXT,
-    nro_cuentas_cliente BIGINT,
-    nro_tarjetas_cliente BIGINT,
+    estado_cliente VARCHAR(20),
+    nro_cuentas_activas BIGINT,
+    nro_tarjetas_activas BIGINT,
     tipo_cuenta VARCHAR(20),
+    estado_cuenta VARCHAR(20),
     canal_descripcion VARCHAR(100),
+    onboardings_canal BIGINT,
     nro_tarjeta VARCHAR(16),
     tipo_tarjeta VARCHAR(20),
+    estado_tarjeta VARCHAR(20),
     tipo_movimiento VARCHAR(100),
     ingreso NUMERIC,
     egreso NUMERIC,
     comision NUMERIC,
     neto NUMERIC,
-    monto_movido NUMERIC
+    monto_movido NUMERIC,
+    total_clientes_activos_bbdd BIGINT,
+    total_cuentas_activas_bbdd BIGINT,
+    total_tarjetas_activas_bbdd BIGINT
 )
 LANGUAGE SQL
 STABLE
@@ -91,34 +98,56 @@ AS $$
         mu.nro_cuenta,
         cu.id_cliente,
         COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org, 'SIN TITULAR') AS titular,
-        COALESCE(cc.nro_cuentas_cliente, 0) AS nro_cuentas_cliente,
-        COALESCE(tc.nro_tarjetas_cliente, 0) AS nro_tarjetas_cliente,
+        c.estado AS estado_cliente,
+        COALESCE(cc.nro_cuentas_activas, 0) AS nro_cuentas_activas,
+        COALESCE(tc.nro_tarjetas_activas, 0) AS nro_tarjetas_activas,
         cu.tipo_cuenta,
+        cu.estado AS estado_cuenta,
         can.descripcion AS canal_descripcion,
+        COALESCE(ob.nro_onboardings, 0) AS onboardings_canal,
         COALESCE(pos.nro_tarjeta, ecom.nro_tarjeta, atm.nro_tarjeta, 'N/A') AS nro_tarjeta,
         COALESCE(t.tipo_tarjeta, 'N/A') AS tipo_tarjeta,
+        COALESCE(t.estado, 'N/A') AS estado_tarjeta,
         tm.descripcion AS tipo_movimiento,
         mu.ingreso,
         mu.egreso,
         mu.monto_comision AS comision,
         (mu.ingreso - mu.egreso) AS neto,
-        (mu.ingreso + mu.egreso) AS monto_movido
+        (mu.ingreso + mu.egreso) AS monto_movido,
+        totales.total_clientes_activos,
+        totales.total_cuentas_activas,
+        totales.total_tarjetas_activas
     FROM movimientos_unificados mu
     JOIN "usb_bank"."CUENTA" cu ON mu.nro_cuenta = cu.nro_cuenta
     JOIN "usb_bank"."CLIENTE" c ON cu.id_cliente = c.id_cliente
     LEFT JOIN "usb_bank"."CLIENTE_NATURAL" cn ON c.id_cliente = cn.id_cliente
     LEFT JOIN "usb_bank"."CLIENTE_JURIDICO" cj ON c.id_cliente = cj.id_cliente
     LEFT JOIN (
-        SELECT id_cliente, COUNT(DISTINCT nro_cuenta) AS nro_cuentas_cliente
+        SELECT id_cliente, COUNT(DISTINCT nro_cuenta) AS nro_cuentas_activas
         FROM "usb_bank"."CUENTA"
+        WHERE LOWER(estado) = 'activa'
         GROUP BY id_cliente
     ) cc ON cu.id_cliente = cc.id_cliente
     LEFT JOIN (
-        SELECT cu2.id_cliente, COUNT(DISTINCT t2.nro_tarjeta) AS nro_tarjetas_cliente
+        SELECT cu2.id_cliente, COUNT(DISTINCT t2.nro_tarjeta) AS nro_tarjetas_activas
         FROM "usb_bank"."CUENTA" cu2
-        LEFT JOIN "usb_bank"."TARJETA" t2 ON cu2.nro_cuenta = t2.nro_cuenta
+        LEFT JOIN "usb_bank"."TARJETA" t2
+          ON cu2.nro_cuenta = t2.nro_cuenta
+         AND LOWER(t2.estado) = 'activa'
         GROUP BY cu2.id_cliente
     ) tc ON cu.id_cliente = tc.id_cliente
+    LEFT JOIN (
+        SELECT id_canal_onboarding AS id_canal, COUNT(*) AS nro_onboardings
+        FROM "usb_bank"."CLIENTE"
+        GROUP BY id_canal_onboarding
+    ) ob ON mu.id_canal = ob.id_canal
+    CROSS JOIN (
+        SELECT
+            COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
+            (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu3 WHERE LOWER(cu3.estado) = 'activa') AS total_cuentas_activas,
+            (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas
+        FROM "usb_bank"."CLIENTE" c3
+    ) totales
     JOIN "usb_bank"."CANAL" can ON mu.id_canal = can.id_canal
     JOIN "usb_bank"."TIPO_MOVIMIENTO" tm ON mu.id_tipo_mov = tm.id_tipo_mov
     LEFT JOIN "usb_bank"."MOVIMIENTO_PAGO_POS" pos ON mu.nro_referencia = pos.nro_referencia
@@ -136,42 +165,46 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_contable_cliente"(
     p_estado_movimiento TEXT DEFAULT 'Todos'
 )
 RETURNS TABLE (
-    id_cliente INTEGER,
-    titular TEXT,
-    nro_cuentas_cliente BIGINT,
-    nro_tarjetas_cliente BIGINT,
-    ingresos NUMERIC,
-    egresos NUMERIC,
-    neto NUMERIC,
-    comisiones NUMERIC,
-    nro_movimientos BIGINT,
-    mov_transferencia_interbancaria NUMERIC,
-    mov_pago_ecommerce NUMERIC,
-    mov_pago_pos NUMERIC,
-    mov_retiro_atm NUMERIC,
-    mov_pago_movil NUMERIC
+    "ID_Cliente" INTEGER,
+    "Titular" TEXT,
+    "Estado" VARCHAR(20),
+    "Nro_Cuentas_Activas" BIGINT,
+    "Nro_Tarjetas_Activas" BIGINT,
+    "Ingresos" NUMERIC,
+    "Egresos" NUMERIC,
+    "Neto" NUMERIC,
+    "Comisiones" NUMERIC,
+    "Nro_Movimientos" BIGINT,
+    "Total_Clientes_Activos_BBDD" BIGINT,
+    "Mov_Transferencia" NUMERIC,
+    "Mov_Pago_Ecommerce" NUMERIC,
+    "Mov_Pago_POS" NUMERIC,
+    "Mov_Retiro_ATM" NUMERIC,
+    "Mov_Pago_Movil" NUMERIC
 )
 LANGUAGE SQL
 STABLE
 AS $$
     SELECT
-        b.id_cliente,
-        MAX(b.titular) AS titular,
-        MAX(b.nro_cuentas_cliente) AS nro_cuentas_cliente,
-        MAX(b.nro_tarjetas_cliente) AS nro_tarjetas_cliente,
-        SUM(b.ingreso) AS ingresos,
-        SUM(b.egreso) AS egresos,
-        SUM(b.neto) AS neto,
-        SUM(b.comision) AS comisiones,
-        COUNT(DISTINCT b.referencia) AS nro_movimientos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) IN ('transferencia interbancaria', 'transferencia entre cuentas') THEN b.monto_movido ELSE 0 END) AS mov_transferencia_interbancaria,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS mov_pago_ecommerce,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS mov_pago_pos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS mov_retiro_atm,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago movil' THEN b.monto_movido ELSE 0 END) AS mov_pago_movil
+        b.id_cliente AS "ID_Cliente",
+        MAX(b.titular) AS "Titular",
+        MAX(b.estado_cliente) AS "Estado",
+        MAX(b.nro_cuentas_activas) AS "Nro_Cuentas_Activas",
+        MAX(b.nro_tarjetas_activas) AS "Nro_Tarjetas_Activas",
+        SUM(b.ingreso) AS "Ingresos",
+        SUM(b.egreso) AS "Egresos",
+        SUM(b.neto) AS "Neto",
+        SUM(b.comision) AS "Comisiones",
+        COUNT(DISTINCT b.referencia) AS "Nro_Movimientos",
+        MAX(b.total_clientes_activos_bbdd) AS "Total_Clientes_Activos_BBDD",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) IN ('transferencia interbancaria', 'transferencia entre cuentas') THEN b.monto_movido ELSE 0 END) AS "Mov_Transferencia",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_Ecommerce",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_POS",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS "Mov_Retiro_ATM",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago movil' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_Movil"
     FROM "usb_bank"."fn_reporte_contable_base"(p_fecha_inicio, p_fecha_fin, p_estado_movimiento) b
     GROUP BY b.id_cliente
-    ORDER BY neto DESC;
+    ORDER BY "Neto" DESC;
 $$;
 
 
@@ -182,38 +215,42 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_contable_cuenta"(
     p_estado_movimiento TEXT DEFAULT 'Todos'
 )
 RETURNS TABLE (
-    nro_cuenta VARCHAR(20),
-    titular TEXT,
-    ingresos NUMERIC,
-    egresos NUMERIC,
-    neto NUMERIC,
-    comisiones NUMERIC,
-    nro_movimientos BIGINT,
-    mov_transferencia_interbancaria NUMERIC,
-    mov_pago_ecommerce NUMERIC,
-    mov_pago_pos NUMERIC,
-    mov_retiro_atm NUMERIC,
-    mov_pago_movil NUMERIC
+    "Nro_Cuenta" VARCHAR(20),
+    "Titular" TEXT,
+    "Estado" VARCHAR(20),
+    "Ingresos" NUMERIC,
+    "Egresos" NUMERIC,
+    "Neto" NUMERIC,
+    "Comisiones" NUMERIC,
+    "Nro_Movimientos" BIGINT,
+    "Total_Cuentas_Activas_BBDD" BIGINT,
+    "Mov_Transferencia" NUMERIC,
+    "Mov_Pago_Ecommerce" NUMERIC,
+    "Mov_Pago_POS" NUMERIC,
+    "Mov_Retiro_ATM" NUMERIC,
+    "Mov_Pago_Movil" NUMERIC
 )
 LANGUAGE SQL
 STABLE
 AS $$
     SELECT
-        b.nro_cuenta,
-        MAX(b.titular) AS titular,
-        SUM(b.ingreso) AS ingresos,
-        SUM(b.egreso) AS egresos,
-        SUM(b.neto) AS neto,
-        SUM(b.comision) AS comisiones,
-        COUNT(DISTINCT b.referencia) AS nro_movimientos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) IN ('transferencia interbancaria', 'transferencia entre cuentas') THEN b.monto_movido ELSE 0 END) AS mov_transferencia_interbancaria,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS mov_pago_ecommerce,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS mov_pago_pos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS mov_retiro_atm,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago movil' THEN b.monto_movido ELSE 0 END) AS mov_pago_movil
+        b.nro_cuenta AS "Nro_Cuenta",
+        MAX(b.titular) AS "Titular",
+        MAX(b.estado_cuenta) AS "Estado",
+        SUM(b.ingreso) AS "Ingresos",
+        SUM(b.egreso) AS "Egresos",
+        SUM(b.neto) AS "Neto",
+        SUM(b.comision) AS "Comisiones",
+        COUNT(DISTINCT b.referencia) AS "Nro_Movimientos",
+        MAX(b.total_cuentas_activas_bbdd) AS "Total_Cuentas_Activas_BBDD",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) IN ('transferencia interbancaria', 'transferencia entre cuentas') THEN b.monto_movido ELSE 0 END) AS "Mov_Transferencia",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_Ecommerce",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_POS",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS "Mov_Retiro_ATM",
+        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago movil' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_Movil"
     FROM "usb_bank"."fn_reporte_contable_base"(p_fecha_inicio, p_fecha_fin, p_estado_movimiento) b
     GROUP BY b.nro_cuenta
-    ORDER BY neto DESC;
+    ORDER BY "Neto" DESC;
 $$;
 
 
@@ -224,26 +261,28 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_contable_canal"(
     p_estado_movimiento TEXT DEFAULT 'Todos'
 )
 RETURNS TABLE (
-    canal_descripcion VARCHAR(100),
-    ingresos NUMERIC,
-    egresos NUMERIC,
-    neto NUMERIC,
-    comisiones NUMERIC,
-    nro_movimientos BIGINT
+    "Canal_Descripcion" VARCHAR(100),
+    "Onboardings_Canal" BIGINT,
+    "Ingresos" NUMERIC,
+    "Egresos" NUMERIC,
+    "Neto" NUMERIC,
+    "Comisiones" NUMERIC,
+    "Nro_Movimientos" BIGINT
 )
 LANGUAGE SQL
 STABLE
 AS $$
     SELECT
-        b.canal_descripcion,
-        SUM(b.ingreso) AS ingresos,
-        SUM(b.egreso) AS egresos,
-        SUM(b.neto) AS neto,
-        SUM(b.comision) AS comisiones,
-        COUNT(DISTINCT b.referencia) AS nro_movimientos
+        b.canal_descripcion AS "Canal_Descripcion",
+        MAX(b.onboardings_canal) AS "Onboardings_Canal",
+        SUM(b.ingreso) AS "Ingresos",
+        SUM(b.egreso) AS "Egresos",
+        SUM(b.neto) AS "Neto",
+        SUM(b.comision) AS "Comisiones",
+        COUNT(DISTINCT b.referencia) AS "Nro_Movimientos"
     FROM "usb_bank"."fn_reporte_contable_base"(p_fecha_inicio, p_fecha_fin, p_estado_movimiento) b
     GROUP BY b.canal_descripcion
-    ORDER BY nro_movimientos DESC;
+    ORDER BY "Nro_Movimientos" DESC;
 $$;
 
 
@@ -254,38 +293,42 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_contable_tarjeta"(
     p_estado_movimiento TEXT DEFAULT 'Todos'
 )
 RETURNS TABLE (
-    nro_tarjeta VARCHAR(16),
-    titular TEXT,
-    tipo_tarjeta VARCHAR(20),
-    ingresos NUMERIC,
-    egresos NUMERIC,
-    neto NUMERIC,
-    comisiones NUMERIC,
-    nro_movimientos BIGINT,
-    mov_pago_ecommerce NUMERIC,
-    mov_pago_pos NUMERIC,
-    mov_retiro_atm NUMERIC
+    "Nro_Tarjeta" VARCHAR(16),
+    "Titular" TEXT,
+    "Tipo_Tarjeta" VARCHAR(20),
+    "Estado" VARCHAR(20),
+    "Ingresos" NUMERIC,
+    "Egresos" NUMERIC,
+    "Neto" NUMERIC,
+    "Comisiones" NUMERIC,
+    "Nro_Movimientos" BIGINT,
+    "Total_Tarjetas_Activas_BBDD" BIGINT,
+    "Mov_Pago_Ecommerce" NUMERIC,
+    "Mov_Pago_POS" NUMERIC,
+    "Mov_Retiro_ATM" NUMERIC
 )
 LANGUAGE SQL
 STABLE
 AS $$
     SELECT
-        b.nro_tarjeta,
-        MAX(b.titular) AS titular,
-        MAX(b.tipo_tarjeta) AS tipo_tarjeta,
-        SUM(b.ingreso) AS ingresos,
-        SUM(b.egreso) AS egresos,
-        SUM(b.neto) AS neto,
-        SUM(b.comision) AS comisiones,
-        COUNT(DISTINCT b.referencia) AS nro_movimientos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS mov_pago_ecommerce,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS mov_pago_pos,
-        SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS mov_retiro_atm
+                b.nro_tarjeta AS "Nro_Tarjeta",
+                MAX(b.titular) AS "Titular",
+                MAX(b.tipo_tarjeta) AS "Tipo_Tarjeta",
+                MAX(b.estado_tarjeta) AS "Estado",
+                SUM(b.ingreso) AS "Ingresos",
+                SUM(b.egreso) AS "Egresos",
+                SUM(b.neto) AS "Neto",
+                SUM(b.comision) AS "Comisiones",
+                COUNT(DISTINCT b.referencia) AS "Nro_Movimientos",
+                MAX(b.total_tarjetas_activas_bbdd) AS "Total_Tarjetas_Activas_BBDD",
+                SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por ecommerce' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_Ecommerce",
+                SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'pago por punto de venta' THEN b.monto_movido ELSE 0 END) AS "Mov_Pago_POS",
+                SUM(CASE WHEN LOWER(b.tipo_movimiento) = 'retiro en cajero automatico' THEN b.monto_movido ELSE 0 END) AS "Mov_Retiro_ATM"
     FROM "usb_bank"."fn_reporte_contable_base"(p_fecha_inicio, p_fecha_fin, p_estado_movimiento) b
     WHERE b.nro_tarjeta IS NOT NULL
       AND b.nro_tarjeta <> 'N/A'
     GROUP BY b.nro_tarjeta
-    ORDER BY neto DESC;
+        ORDER BY "Neto" DESC;
 $$;
 
 -- Ejemplos de uso rapido en terminal psql:
