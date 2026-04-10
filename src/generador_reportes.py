@@ -24,6 +24,26 @@ def formatear_rango_fechas(fecha_inicio, fecha_fin) -> str:
     return f"Desde {fecha_inicio} Hasta {fecha_fin}"
 
 
+def formatear_numero_es(valor, decimales=2) -> str:
+    numero = pd.to_numeric(valor, errors="coerce")
+    if pd.isna(numero):
+        numero = 0
+    formato_base = f"{float(numero):,.{decimales}f}"
+    return formato_base.replace(",", "_").replace(".", ",").replace("_", ".")
+
+
+def formatear_monto_ves(valor) -> str:
+    return formatear_numero_es(valor, decimales=2)
+
+
+def formatear_columnas_monetarias(df, columnas_monetarias):
+    df_formateado = df.copy()
+    for columna in columnas_monetarias:
+        if columna in df_formateado.columns:
+            df_formateado[columna] = df_formateado[columna].apply(formatear_monto_ves)
+    return df_formateado
+
+
 class PDFReporte(FPDF):
     def __init__(self, orientacion, etiqueta_reporte):
         super().__init__(orientation=orientacion)
@@ -67,6 +87,7 @@ def exportar_pdf(
     resumen_tabla=None,
     metadata_lineas=None,
     secciones_resumen=None,
+    saldo_total_texto=None,
 ):
     columnas = [str(col) for col in datos.columns.tolist()]
     subcarpetas_formato_corporativo = {
@@ -137,7 +158,7 @@ def exportar_pdf(
         pdf.cell(
             0,
             10,
-            f"Saldo Total: VES {datos['Saldo_Total'].astype(float).sum():,.2f}\n",
+            f"Saldo Total: {saldo_total_texto or 'VES 0,00'}\n",
             align="L",
             new_x="LMARGIN",
             new_y="NEXT",
@@ -250,6 +271,12 @@ def generador_reportes_estadisticos(
     ]
 
     df_final = clientes_filtrado[columnas_reporte]
+    saldo_total_general = 0.0
+    if "Saldo_Total" in df_final.columns:
+        saldo_total_general = float(
+            pd.to_numeric(df_final["Saldo_Total"], errors="coerce").fillna(0).sum()
+        )
+    df_final_export = formatear_columnas_monetarias(df_final, ["Saldo_Total"])
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     rango_fechas = formatear_rango_fechas(fecha_inicio_reporte, fecha_fin_reporte)
@@ -331,12 +358,10 @@ def generador_reportes_estadisticos(
             if df_final.empty:
                 f.write("No se encontraron clientes con los criterios especificados.\n")
             else:
-                f.write(df_final.to_string(index=False))
+                f.write(df_final_export.to_string(index=False))
                 f.write("\n\n" + "-" * 80 + "\n")
                 if "Saldo_Total" in df_final.columns:
-                    f.write(
-                        f"SALDO TOTAL: VES {df_final['Saldo_Total'].astype(float).sum():,.2f}\n"
-                    )
+                    f.write(f"SALDO TOTAL: VES {formatear_monto_ves(saldo_total_general)}\n")
 
                 titulo_rango_txt = (
                     f"RESUMEN DE OPERACIONES ({rango_fechas.upper()})"
@@ -347,12 +372,14 @@ def generador_reportes_estadisticos(
                 f.write(f"{titulo_rango_txt}\n")
                 f.write("-" * len(titulo_rango_txt) + "\n")
                 f.write(
-                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {total_ingresos_periodo:,.2f}\n"
+                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {formatear_monto_ves(total_ingresos_periodo)}\n"
                 )
                 f.write(
-                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {total_egresos_periodo:,.2f}\n"
+                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {formatear_monto_ves(total_egresos_periodo)}\n"
                 )
-                f.write(f"BALANCE NETO DEL PERIODO: VES {balance_neto_periodo:,.2f}\n")
+                f.write(
+                    f"BALANCE NETO DEL PERIODO: VES {formatear_monto_ves(balance_neto_periodo)}\n"
+                )
 
                 f.write("\nKPIs UNIVERSALES DEL SISTEMA (EN TIEMPO REAL)\n")
                 f.write("-" * 46 + "\n")
@@ -392,13 +419,16 @@ def generador_reportes_estadisticos(
                 "filas": [
                     (
                         "TOTAL GENERAL DE INGRESOS (DEBE)",
-                        f"VES {total_ingresos_periodo:,.2f}",
+                        f"VES {formatear_monto_ves(total_ingresos_periodo)}",
                     ),
                     (
                         "TOTAL GENERAL DE EGRESOS (HABER)",
-                        f"VES {total_egresos_periodo:,.2f}",
+                        f"VES {formatear_monto_ves(total_egresos_periodo)}",
                     ),
-                    ("BALANCE NETO DEL PERIODO", f"VES {balance_neto_periodo:,.2f}"),
+                    (
+                        "BALANCE NETO DEL PERIODO",
+                        f"VES {formatear_monto_ves(balance_neto_periodo)}",
+                    ),
                 ],
             },
             {
@@ -423,11 +453,12 @@ def generador_reportes_estadisticos(
             },
         ]
         exportar_pdf(
-            df_final,
+            df_final_export,
             nombre_pdf,
             "reportes_estadisticos",
             metadata_lineas=metadata_pdf_estadistico,
             secciones_resumen=secciones_resumen_estadistico,
+            saldo_total_texto=f"VES {formatear_monto_ves(saldo_total_general)}",
         )
 
 
@@ -691,25 +722,49 @@ def generador_reportes_contables(
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     resumen_pdf_contable = []
     rango_fechas = formatear_rango_fechas(fecha_inicio, fecha_fin)
+    columnas_monetarias_contables = [
+        columna
+        for columna in df_pivot.columns
+        if columna
+        in {
+            "Ingresos",
+            "Egresos",
+            "Neto",
+            "Comisiones",
+            "Monto",
+            "Saldo_Previo",
+            "Saldo_Nuevo",
+        }
+        or columna.startswith("Mov_")
+    ]
+    df_pivot_export = formatear_columnas_monetarias(
+        df_pivot, columnas_monetarias_contables
+    )
 
     if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
         resumen_pdf_contable.append(
             (
                 "TOTAL GENERAL DE INGRESOS (DEBE)",
-                f"VES {df_pivot['Ingresos'].sum():,.2f}",
+                f"VES {formatear_monto_ves(df_pivot['Ingresos'].sum())}",
             )
         )
         resumen_pdf_contable.append(
             (
                 "TOTAL GENERAL DE EGRESOS (HABER)",
-                f"VES {df_pivot['Egresos'].sum():,.2f}",
+                f"VES {formatear_monto_ves(df_pivot['Egresos'].sum())}",
             )
         )
         resumen_pdf_contable.append(
-            ("BALANCE NETO DEL PERIODO", f"VES {df_pivot['Neto'].sum():,.2f}")
+            (
+                "BALANCE NETO DEL PERIODO",
+                f"VES {formatear_monto_ves(df_pivot['Neto'].sum())}",
+            )
         )
         resumen_pdf_contable.append(
-            ("TOTAL COMISIONES", f"VES {df_pivot['Comisiones'].sum():,.2f}")
+            (
+                "TOTAL COMISIONES",
+                f"VES {formatear_monto_ves(df_pivot['Comisiones'].sum())}",
+            )
         )
 
         columna_volumen_pdf = (
@@ -750,20 +805,22 @@ def generador_reportes_contables(
             f.write(f"Agrupado por: {agrupar_por.upper()}\n")
             f.write(f"{rango_fechas} | Estado: {estado_movimiento}\n")
             f.write("-" * 50 + "\n\n")
-            f.write(df_pivot.to_string(index=False))
+            f.write(df_pivot_export.to_string(index=False))
 
             if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
                 f.write("\n\n" + "-" * 50 + "\n")
                 f.write(
-                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {df_pivot['Ingresos'].sum():,.2f}\n"
+                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {formatear_monto_ves(df_pivot['Ingresos'].sum())}\n"
                 )
                 f.write(
-                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {df_pivot['Egresos'].sum():,.2f}\n"
+                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {formatear_monto_ves(df_pivot['Egresos'].sum())}\n"
                 )
                 f.write(
-                    f"BALANCE NETO DEL PERIODO: VES {df_pivot['Neto'].sum():,.2f}\n"
+                    f"BALANCE NETO DEL PERIODO: VES {formatear_monto_ves(df_pivot['Neto'].sum())}\n"
                 )
-                f.write(f"TOTAL COMISIONES: VES {df_pivot['Comisiones'].sum():,.2f}\n")
+                f.write(
+                    f"TOTAL COMISIONES: VES {formatear_monto_ves(df_pivot['Comisiones'].sum())}\n"
+                )
                 columna_volumen = (
                     "Nro_Movimientos"
                     if "Nro_Movimientos" in df_pivot.columns
@@ -804,7 +861,7 @@ def generador_reportes_contables(
             f"{rango_fechas} | Estado: {estado_movimiento}",
         ]
         exportar_pdf(
-            df_pivot,
+            df_pivot_export,
             nombre_pdf,
             "reportes_contables",
             resumen_tabla=resumen_pdf_contable,
