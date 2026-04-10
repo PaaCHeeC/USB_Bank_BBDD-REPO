@@ -10,4 +10,4 @@ interfaz_banco.py: Definición de la GUI con CustomTkinter.
 
 generador_reportes.py: Lógica de procesamiento de archivos TXT y PDF.
 
-Responsables: Ricardo García, Ángel Valero y Ángel Pacheco.
+Responsables: Ángel Valero, Rosa Ramirez y Luis Isea.

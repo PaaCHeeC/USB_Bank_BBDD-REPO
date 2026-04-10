@@ -1,4 +1,8 @@
-USB Bank - Sistema de Gestión Bancaria (Fase III)
+## USB Bank - Sistema de Gestión Bancaria (Proyecto Fase III)
+Universidad Simón Bolívar (Sartenejas).
+CI-3391 Laboratorio de Sistemas de Bases de Datos I.
+Profesor: Kendy Briceño.
+Período: Trimestre Enero - Marzo 2026.
 
 Este repositorio contiene la implementación de la Fase III del proyecto para la asignatura CI-3391: Laboratorio de Sistemas de Bases de Datos I. El sistema consiste en un Core Transaccional Bancario que integra una interfaz gráfica de usuario (GUI) con una base de datos PostgreSQL altamente normalizada.
 
@@ -47,14 +51,14 @@ Pasos de Ejecución
 - Configuración de Datos:
 Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estructura de tablas y cargar los datos de prueba.
 - Entorno Virtual (Recomendado):
-  - python3 -m venv venv
+  - python3 -m venv venv # En Windows: python -m venv venv
   - source venv/bin/activate # En Windows: venv\Scripts\activate
 - Instalación de Dependencias:
   - pip install -r requirements.txt
 - Inicio de la Aplicación:
-  - python src/main.py
+  - python3 src/main.py # En Windows: python src\main.py
 
-6. Equipo de Desarrollo (Sección 01)
+6. Equipo de Desarrollo (Equipo A)
 
 - Pacheco, Ángel - Líder de Proyecto, Integración e Infraestructura
 - Ramírez, Rosa - Documentación Técnica y Teoría de Normalización
@@ -62,10 +66,3 @@ Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estruc
 - Orta, Brian - Ingeniería de Datos y SQL Analítico
 - Isea, Luis M - Análisis Estructural y Estrategia de Defensa
 - Valero, Angel - Frontend y Diseño de Experiencia de Usuario
-
-7. Información Académica
-
-- Institución: Universidad Simón Bolívar (Sartenejas).
-- Materia: CI-3391 Laboratorio de Sistemas de Bases de Datos I.
-- Profesor: Kendy Briceño.
-- Período: Trimestre Enero - Marzo 2026.
