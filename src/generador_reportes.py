@@ -1,9 +1,9 @@
-from creador_dir_reportes import creacion_de_carpeta_reportes
 import pandas as pd
 from fpdf import FPDF  # Importación corregida para fpdf2
 from fpdf.fonts import FontFace
 import os
 from datetime import datetime
+from creador_dir_reportes import creacion_de_carpeta_reportes
 
 PASTEL_BLUE = (225, 238, 250)
 
@@ -12,9 +12,9 @@ def obtener_etiqueta_reporte(subcarpeta: str) -> str:
     if subcarpeta == "reportes_contables":
         return "Reporte Contable"
     if subcarpeta == "reportes_estadisticos":
-        return "Reporte Estadistico"
+        return "Reporte Estadístico"
     if subcarpeta == "reportes_auditoria":
-        return "Reporte de Auditoria"
+        return "Reporte de Auditoría"
     return "Reporte"
 
 
