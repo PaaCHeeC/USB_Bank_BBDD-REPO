@@ -1,8 +1,8 @@
-from creador_dir_reportes import creacion_de_carpeta_reportes
 import pandas as pd
 from fpdf import FPDF  # Importación corregida para fpdf2
 import os
 from datetime import datetime
+from creador_dir_reportes import creacion_de_carpeta_reportes
 
 ##IMPORTANTE:
 ##Debe tener el modulo virtualenv para que el programa funcione bien, ademas de activar el venv antes de ejecutar
