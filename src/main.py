@@ -24,6 +24,9 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
         query_params = None
 
         if tipo_reporte == "estadistico":
+            fecha_inicio = filtros.get("inicio")
+            fecha_fin = filtros.get("fin")
+
             query = """
                 SELECT
                     "CLIENTE".id_cliente AS "ID_Cliente",
@@ -33,7 +36,15 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     "CANAL".tipo_canal AS "Canal_Afiliacion",
                     COALESCE("CUENTA".cuentas, 0) AS "Total_Productos",
                     COALESCE("CUENTA".saldo_total_cuenta, 0.00) AS "Saldo_Total",
-                    "CLIENTE".fecha_registro AS "Fecha_Registro"
+                    "CLIENTE".fecha_registro AS "Fecha_Registro",
+                    kpi.total_clientes_activos AS "Total_Clientes_Activos",
+                    kpi.total_cuentas_activas AS "Total_Cuentas_Activas",
+                    kpi.total_tarjetas_activas AS "Total_Tarjetas_Activas",
+                    kpi.onboarding_portal_web AS "Onboarding_Portal_Web",
+                    kpi.onboarding_app_movil AS "Onboarding_App_Movil",
+                    kpi.onboarding_ivr_otros AS "Onboarding_IVR_Otros",
+                    mov.total_ingresos AS "Total_Ingresos_Periodo",
+                    mov.total_egresos AS "Total_Egresos_Periodo"
                 FROM usb_bank."CLIENTE"
                 LEFT JOIN usb_bank."CLIENTE_NATURAL" ON "CLIENTE"."id_cliente" = "CLIENTE_NATURAL"."id_cliente"
                 LEFT JOIN usb_bank."CLIENTE_JURIDICO" ON "CLIENTE"."id_cliente" = "CLIENTE_JURIDICO"."id_cliente"
@@ -45,8 +56,36 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     FROM usb_bank."CUENTA"
                     GROUP BY id_cliente
                 ) "CUENTA" ON "CLIENTE"."id_cliente" = "CUENTA"."id_cliente"
+                CROSS JOIN (
+                    SELECT
+                        COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo') AS total_clientes_activos,
+                        (SELECT COUNT(*) FROM usb_bank."CUENTA" cu WHERE LOWER(cu.estado) = 'activa') AS total_cuentas_activas,
+                        (SELECT COUNT(*) FROM usb_bank."TARJETA" t WHERE LOWER(t.estado) = 'activa') AS total_tarjetas_activas,
+                        COUNT(*) FILTER (
+                            WHERE LOWER(can.descripcion) LIKE '%%portal web%%'
+                        ) AS onboarding_portal_web,
+                        COUNT(*) FILTER (
+                            WHERE LOWER(can.descripcion) LIKE '%%app movil%%'
+                        ) AS onboarding_app_movil,
+                        COUNT(*) FILTER (
+                            WHERE LOWER(can.descripcion) NOT LIKE '%%portal web%%'
+                              AND LOWER(can.descripcion) NOT LIKE '%%app movil%%'
+                        ) AS onboarding_ivr_otros
+                    FROM usb_bank."CLIENTE" c
+                    JOIN usb_bank."CANAL" can ON can.id_canal = c.id_canal_onboarding
+                    WHERE LOWER(c.estado) = 'activo'
+                ) kpi
+                CROSS JOIN (
+                    SELECT
+                        COALESCE(SUM(m.monto_ingreso), 0.00) AS total_ingresos,
+                        COALESCE(SUM(m.monto_egreso), 0.00) AS total_egresos
+                    FROM usb_bank."MOVIMIENTO" m
+                    WHERE (%s IS NULL OR m.fecha >= %s::timestamp)
+                      AND (%s IS NULL OR m.fecha < (%s::date + INTERVAL '1 day'))
+                ) mov
                 ORDER BY "CLIENTE".id_cliente;
             """
+            query_params = (fecha_inicio, fecha_inicio, fecha_fin, fecha_fin)
 
         elif tipo_reporte == "contable":
             fecha_inicio = filtros.get("inicio")
@@ -113,8 +152,8 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     COALESCE(tc.nro_tarjetas_activas, 0) AS "Nro_Tarjetas_Activas",
                     cu.tipo_cuenta AS "Tipo_Cuenta",
                     cu.estado AS "Estado_Cuenta",
-                    can.tipo_canal AS "Canal_Tx",
-                    can.descripcion AS "Canal_Descripcion",
+                    can_tx.tipo_canal AS "Canal_Tx",
+                    can_onb.descripcion AS "Canal_Descripcion",
                     COALESCE(ob.nro_onboardings, 0) AS "Onboardings_Canal",
                     COALESCE(pos.nro_tarjeta, ecom.nro_tarjeta, atm.nro_tarjeta, 'N/A') AS "Tarjeta",
                     COALESCE(t.tipo_tarjeta, 'N/A') AS "Tipo_Tarjeta",
@@ -155,8 +194,9 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                 LEFT JOIN (
                     SELECT id_canal_onboarding AS id_canal, COUNT(*) AS nro_onboardings
                     FROM "usb_bank"."CLIENTE"
+                    WHERE LOWER(estado) = 'activo'
                     GROUP BY id_canal_onboarding
-                ) ob ON mu.id_canal = ob.id_canal
+                ) ob ON c.id_canal_onboarding = ob.id_canal
                 CROSS JOIN (
                     SELECT
                         COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
@@ -164,7 +204,8 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                         (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas
                     FROM "usb_bank"."CLIENTE" c3
                 ) totales
-                JOIN "usb_bank"."CANAL" can ON mu.id_canal = can.id_canal
+                JOIN "usb_bank"."CANAL" can_tx ON mu.id_canal = can_tx.id_canal
+                JOIN "usb_bank"."CANAL" can_onb ON c.id_canal_onboarding = can_onb.id_canal
                 JOIN "usb_bank"."TIPO_MOVIMIENTO" tm ON mu.id_tipo_mov = tm.id_tipo_mov
                 JOIN "usb_bank"."BANCO" banco_origen ON mu.id_banco_origen = banco_origen.id_banco
                 JOIN "usb_bank"."BANCO" banco_destino ON mu.id_banco_destino = banco_destino.id_banco

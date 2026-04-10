@@ -66,10 +66,18 @@ def exportar_pdf(
     subcarpeta,
     resumen_tabla=None,
     metadata_lineas=None,
+    secciones_resumen=None,
 ):
     columnas = [str(col) for col in datos.columns.tolist()]
+    subcarpetas_formato_corporativo = {
+        "reportes_contables",
+        "reportes_estadisticos",
+        "reportes_auditoria",
+    }
     orientacion = (
-        "L" if (subcarpeta == "reportes_contables" or len(columnas) > 7) else "P"
+        "L"
+        if (subcarpeta in subcarpetas_formato_corporativo or len(columnas) > 7)
+        else "P"
     )
     etiqueta_reporte = obtener_etiqueta_reporte(subcarpeta)
 
@@ -109,7 +117,7 @@ def exportar_pdf(
     pdf.set_font("helvetica", size=tam_fuente_tabla)
     encabezado_style = (
         FontFace(emphasis="B", fill_color=PASTEL_BLUE)
-        if subcarpeta == "reportes_contables"
+        if subcarpeta in subcarpetas_formato_corporativo
         else FontFace(emphasis="B")
     )
     with pdf.table(text_align="CENTER", headings_style=encabezado_style) as table:
@@ -129,7 +137,7 @@ def exportar_pdf(
         pdf.cell(
             0,
             10,
-            f"Saldo Total: ${datos['Saldo_Total'].astype(float).sum():,.2f}\n",
+            f"Saldo Total: VES {datos['Saldo_Total'].astype(float).sum():,.2f}\n",
             align="L",
             new_x="LMARGIN",
             new_y="NEXT",
@@ -149,6 +157,28 @@ def exportar_pdf(
             pdf.cell(label_w, 8, str(etiqueta), border=1, align="L", fill=True)
             pdf.cell(value_w, 8, str(valor), border=1, align="R", fill=True)
             pdf.ln(8)
+
+    if secciones_resumen:
+        for seccion in secciones_resumen:
+            titulo = seccion.get("titulo", "")
+            filas_seccion = seccion.get("filas", [])
+            if not filas_seccion:
+                continue
+
+            pdf.ln(4)
+            pdf.set_font("helvetica", style="B", size=11)
+            pdf.cell(0, 8, str(titulo), new_x="LMARGIN", new_y="NEXT")
+
+            pdf.set_font("helvetica", size=10)
+            page_width_usable = pdf.w - pdf.l_margin - pdf.r_margin
+            label_w = page_width_usable * 0.7
+            value_w = page_width_usable * 0.3
+
+            for etiqueta, valor in filas_seccion:
+                pdf.set_fill_color(*PASTEL_BLUE)
+                pdf.cell(label_w, 8, str(etiqueta), border=1, align="L", fill=True)
+                pdf.cell(value_w, 8, str(valor), border=1, align="R", fill=True)
+                pdf.ln(8)
 
     if metadata_lineas:
         pdf.ln(4)
@@ -223,6 +253,66 @@ def generador_reportes_estadisticos(
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     rango_fechas = formatear_rango_fechas(fecha_inicio_reporte, fecha_fin_reporte)
+    total_ingresos_periodo = 0.0
+    total_egresos_periodo = 0.0
+    total_clientes_activos = 0
+    total_cuentas_activas = 0
+    total_tarjetas_activas = 0
+    onboarding_portal_web = 0
+    onboarding_app_movil = 0
+    onboarding_ivr_otros = 0
+
+    if not df_clientes.empty:
+        if "Total_Ingresos_Periodo" in df_clientes.columns:
+            total_ingresos_periodo = float(
+                pd.to_numeric(df_clientes["Total_Ingresos_Periodo"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Total_Egresos_Periodo" in df_clientes.columns:
+            total_egresos_periodo = float(
+                pd.to_numeric(df_clientes["Total_Egresos_Periodo"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Total_Clientes_Activos" in df_clientes.columns:
+            total_clientes_activos = int(
+                pd.to_numeric(df_clientes["Total_Clientes_Activos"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Total_Cuentas_Activas" in df_clientes.columns:
+            total_cuentas_activas = int(
+                pd.to_numeric(df_clientes["Total_Cuentas_Activas"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Total_Tarjetas_Activas" in df_clientes.columns:
+            total_tarjetas_activas = int(
+                pd.to_numeric(df_clientes["Total_Tarjetas_Activas"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Onboarding_Portal_Web" in df_clientes.columns:
+            onboarding_portal_web = int(
+                pd.to_numeric(df_clientes["Onboarding_Portal_Web"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Onboarding_App_Movil" in df_clientes.columns:
+            onboarding_app_movil = int(
+                pd.to_numeric(df_clientes["Onboarding_App_Movil"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Onboarding_IVR_Otros" in df_clientes.columns:
+            onboarding_ivr_otros = int(
+                pd.to_numeric(df_clientes["Onboarding_IVR_Otros"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+
+    balance_neto_periodo = total_ingresos_periodo - total_egresos_periodo
 
     if formato.lower() in ["txt", "ambos"]:
         etiqueta_tipo = (
@@ -245,8 +335,39 @@ def generador_reportes_estadisticos(
                 f.write("\n\n" + "-" * 80 + "\n")
                 if "Saldo_Total" in df_final.columns:
                     f.write(
-                        f"SALDO TOTAL: ${df_final['Saldo_Total'].astype(float).sum():,.2f}\n"
+                        f"SALDO TOTAL: VES {df_final['Saldo_Total'].astype(float).sum():,.2f}\n"
                     )
+
+                titulo_rango_txt = (
+                    f"RESUMEN DE OPERACIONES ({rango_fechas.upper()})"
+                    if "Todos los registros" not in rango_fechas
+                    else "RESUMEN DE OPERACIONES (TODOS LOS REGISTROS HASTA LA FECHA)"
+                )
+                f.write("\n")
+                f.write(f"{titulo_rango_txt}\n")
+                f.write("-" * len(titulo_rango_txt) + "\n")
+                f.write(
+                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {total_ingresos_periodo:,.2f}\n"
+                )
+                f.write(
+                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {total_egresos_periodo:,.2f}\n"
+                )
+                f.write(f"BALANCE NETO DEL PERIODO: VES {balance_neto_periodo:,.2f}\n")
+
+                f.write("\nKPIs UNIVERSALES DEL SISTEMA (EN TIEMPO REAL)\n")
+                f.write("-" * 46 + "\n")
+                f.write(f"TOTAL CLIENTES ACTIVOS: {total_clientes_activos}\n")
+                f.write(f"TOTAL CUENTAS ACTIVAS: {total_cuentas_activas}\n")
+                f.write(f"TOTAL TARJETAS ACTIVAS: {total_tarjetas_activas}\n")
+                f.write(
+                    f"Onboarding por Canal - Portal Web: {onboarding_portal_web} clientes\n"
+                )
+                f.write(
+                    f"Onboarding por Canal - App Movil: {onboarding_app_movil} clientes\n"
+                )
+                f.write(
+                    f"Onboarding por Canal - IVR / Otros: {onboarding_ivr_otros} clientes\n"
+                )
 
         print(f"[TXT OK] Reporte estadístico generado en: {nombre_archivo}")
 
@@ -260,11 +381,53 @@ def generador_reportes_estadisticos(
             rango_fechas,
             f"Tipo: {tipo_cliente} | Canal: {canal}",
         ]
+        titulo_rango = (
+            f"RESUMEN DE OPERACIONES ({rango_fechas.upper()})"
+            if "Todos los registros" not in rango_fechas
+            else "RESUMEN DE OPERACIONES (TODOS LOS REGISTROS HASTA LA FECHA)"
+        )
+        secciones_resumen_estadistico = [
+            {
+                "titulo": titulo_rango,
+                "filas": [
+                    (
+                        "TOTAL GENERAL DE INGRESOS (DEBE)",
+                        f"VES {total_ingresos_periodo:,.2f}",
+                    ),
+                    (
+                        "TOTAL GENERAL DE EGRESOS (HABER)",
+                        f"VES {total_egresos_periodo:,.2f}",
+                    ),
+                    ("BALANCE NETO DEL PERIODO", f"VES {balance_neto_periodo:,.2f}"),
+                ],
+            },
+            {
+                "titulo": "KPIs UNIVERSALES DEL SISTEMA (EN TIEMPO REAL)",
+                "filas": [
+                    ("TOTAL CLIENTES ACTIVOS", total_clientes_activos),
+                    ("TOTAL CUENTAS ACTIVAS", total_cuentas_activas),
+                    ("TOTAL TARJETAS ACTIVAS", total_tarjetas_activas),
+                    (
+                        "Onboarding por Canal - Portal Web",
+                        f"{onboarding_portal_web} clientes",
+                    ),
+                    (
+                        "Onboarding por Canal - App Movil",
+                        f"{onboarding_app_movil} clientes",
+                    ),
+                    (
+                        "Onboarding por Canal - IVR / Otros",
+                        f"{onboarding_ivr_otros} clientes",
+                    ),
+                ],
+            },
+        ]
         exportar_pdf(
             df_final,
             nombre_pdf,
             "reportes_estadisticos",
             metadata_lineas=metadata_pdf_estadistico,
+            secciones_resumen=secciones_resumen_estadistico,
         )
 
 
@@ -531,14 +694,22 @@ def generador_reportes_contables(
 
     if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
         resumen_pdf_contable.append(
-            ("TOTAL INGRESOS", f"{df_pivot['Ingresos'].sum():,.2f}")
+            (
+                "TOTAL GENERAL DE INGRESOS (DEBE)",
+                f"VES {df_pivot['Ingresos'].sum():,.2f}",
+            )
         )
         resumen_pdf_contable.append(
-            ("TOTAL EGRESOS", f"{df_pivot['Egresos'].sum():,.2f}")
+            (
+                "TOTAL GENERAL DE EGRESOS (HABER)",
+                f"VES {df_pivot['Egresos'].sum():,.2f}",
+            )
         )
-        resumen_pdf_contable.append(("NETO TOTAL", f"{df_pivot['Neto'].sum():,.2f}"))
         resumen_pdf_contable.append(
-            ("TOTAL COMISIONES", f"{df_pivot['Comisiones'].sum():,.2f}")
+            ("BALANCE NETO DEL PERIODO", f"VES {df_pivot['Neto'].sum():,.2f}")
+        )
+        resumen_pdf_contable.append(
+            ("TOTAL COMISIONES", f"VES {df_pivot['Comisiones'].sum():,.2f}")
         )
 
         columna_volumen_pdf = (
@@ -583,10 +754,16 @@ def generador_reportes_contables(
 
             if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
                 f.write("\n\n" + "-" * 50 + "\n")
-                f.write(f"TOTAL INGRESOS: {df_pivot['Ingresos'].sum():,.2f}\n")
-                f.write(f"TOTAL EGRESOS: {df_pivot['Egresos'].sum():,.2f}\n")
-                f.write(f"NETO TOTAL: {df_pivot['Neto'].sum():,.2f}\n")
-                f.write(f"TOTAL COMISIONES: {df_pivot['Comisiones'].sum():,.2f}\n")
+                f.write(
+                    f"TOTAL GENERAL DE INGRESOS (DEBE): VES {df_pivot['Ingresos'].sum():,.2f}\n"
+                )
+                f.write(
+                    f"TOTAL GENERAL DE EGRESOS (HABER): VES {df_pivot['Egresos'].sum():,.2f}\n"
+                )
+                f.write(
+                    f"BALANCE NETO DEL PERIODO: VES {df_pivot['Neto'].sum():,.2f}\n"
+                )
+                f.write(f"TOTAL COMISIONES: VES {df_pivot['Comisiones'].sum():,.2f}\n")
                 columna_volumen = (
                     "Nro_Movimientos"
                     if "Nro_Movimientos" in df_pivot.columns
@@ -664,4 +841,13 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
 
     if formato.lower() in ["pdf", "ambos"]:
         nombre_pdf = f"Reporte_Auditoria_Limpieza_{timestamp}.pdf"
-        exportar_pdf(df_auditoria, nombre_pdf, "reportes_auditoria")
+        metadata_pdf_auditoria = [
+            "Todos los registros hasta la fecha",
+            f"Dia de ejecucion: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+        ]
+        exportar_pdf(
+            df_auditoria,
+            nombre_pdf,
+            "reportes_auditoria",
+            metadata_lineas=metadata_pdf_auditoria,
+        )
