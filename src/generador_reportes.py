@@ -1,8 +1,45 @@
 import pandas as pd
 from fpdf import FPDF  # Importación corregida para fpdf2
+from fpdf.fonts import FontFace
 import os
 from datetime import datetime
 from creador_dir_reportes import creacion_de_carpeta_reportes
+
+PASTEL_BLUE = (225, 238, 250)
+
+
+def obtener_etiqueta_reporte(subcarpeta: str) -> str:
+    if subcarpeta == "reportes_contables":
+        return "Reporte Contable"
+    if subcarpeta == "reportes_estadisticos":
+        return "Reporte Estadistico"
+    if subcarpeta == "reportes_auditoria":
+        return "Reporte de Auditoria"
+    return "Reporte"
+
+
+def formatear_rango_fechas(fecha_inicio, fecha_fin) -> str:
+    if not fecha_inicio and not fecha_fin:
+        return "Todos los registros hasta la fecha"
+    return f"Desde {fecha_inicio} Hasta {fecha_fin}"
+
+
+class PDFReporte(FPDF):
+    def __init__(self, orientacion, etiqueta_reporte):
+        super().__init__(orientation=orientacion)
+        self.etiqueta_reporte = etiqueta_reporte
+
+    def footer(self):
+        self.set_y(-10)
+        self.set_font("helvetica", size=8)
+        self.cell(
+            0,
+            5,
+            f"{self.etiqueta_reporte} - USB Bank - Equipo A",
+            align="L",
+        )
+        self.cell(0, 5, f"Nro Pag {self.page_no()}", align="R")
+
 
 ##IMPORTANTE:
 ##Debe tener el modulo virtualenv para que el programa funcione bien, ademas de activar el venv antes de ejecutar
@@ -23,16 +60,33 @@ print("Creacion de las carpetas de reportes completada.")
 
 
 # Función exportar_pdf, que convierte los reportes de txt a pdf
-def exportar_pdf(datos, nombre_reporte, subcarpeta):
-    pdf = FPDF()
+def exportar_pdf(
+    datos,
+    nombre_reporte,
+    subcarpeta,
+    resumen_tabla=None,
+    metadata_lineas=None,
+):
+    columnas = [str(col) for col in datos.columns.tolist()]
+    orientacion = (
+        "L" if (subcarpeta == "reportes_contables" or len(columnas) > 7) else "P"
+    )
+    etiqueta_reporte = obtener_etiqueta_reporte(subcarpeta)
+
+    pdf = PDFReporte(orientacion=orientacion, etiqueta_reporte=etiqueta_reporte)
     pdf.add_page()
-    
-    pdf.set_line_width(0.2) 
+
+    pdf.set_line_width(0.2)
 
     # Encabezado del pdf
     pdf.set_font("helvetica", style="B", size=16)
     pdf.cell(
-        0, 10, "USB Bank - Reporte Oficial", align="C", new_x="LMARGIN", new_y="NEXT"
+        0,
+        10,
+        f"USB Bank - {etiqueta_reporte}",
+        align="C",
+        new_x="LMARGIN",
+        new_y="NEXT",
     )
 
     # Fecha del pdf
@@ -48,15 +102,19 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
     )
     pdf.ln(5)
 
-    columnas = [str(col) for col in datos.columns.tolist()]
     filas = datos.astype(str).values.tolist()
 
     # dibujo la tabla especificada
-    pdf.set_font("helvetica", size=9)
-    with pdf.table(text_align="CENTER") as table:
+    tam_fuente_tabla = 8 if len(columnas) > 10 else 9
+    pdf.set_font("helvetica", size=tam_fuente_tabla)
+    encabezado_style = (
+        FontFace(emphasis="B", fill_color=PASTEL_BLUE)
+        if subcarpeta == "reportes_contables"
+        else FontFace(emphasis="B")
+    )
+    with pdf.table(text_align="CENTER", headings_style=encabezado_style) as table:
         encabezado = table.row()
         for col_name in columnas:
-            pdf.set_font(style="B")
             encabezado.cell(col_name)
 
         pdf.set_font(style="")
@@ -64,11 +122,41 @@ def exportar_pdf(datos, nombre_reporte, subcarpeta):
             fila = table.row()
             for item in fila_datos:
                 fila.cell(item)
-                
-    if subcarpeta == 'reportes_estadisticos':
-        pdf.ln(5) 
+
+    if subcarpeta == "reportes_estadisticos":
+        pdf.ln(5)
         pdf.set_font("helvetica", style="I", size=10)
-        pdf.cell(0, 10, f"Saldo Total: ${datos['Saldo_Total'].astype(float).sum():,.2f}\n", align="L", new_x="LMARGIN", new_y="NEXT")
+        pdf.cell(
+            0,
+            10,
+            f"Saldo Total: ${datos['Saldo_Total'].astype(float).sum():,.2f}\n",
+            align="L",
+            new_x="LMARGIN",
+            new_y="NEXT",
+        )
+
+    if resumen_tabla:
+        pdf.ln(4)
+        pdf.set_font("helvetica", style="B", size=11)
+        pdf.cell(0, 8, "Resumen del Reporte", new_x="LMARGIN", new_y="NEXT")
+
+        pdf.set_font("helvetica", size=10)
+        page_width_usable = pdf.w - pdf.l_margin - pdf.r_margin
+        label_w = page_width_usable * 0.7
+        value_w = page_width_usable * 0.3
+        for etiqueta, valor in resumen_tabla:
+            pdf.set_fill_color(*PASTEL_BLUE)
+            pdf.cell(label_w, 8, str(etiqueta), border=1, align="L", fill=True)
+            pdf.cell(value_w, 8, str(valor), border=1, align="R", fill=True)
+            pdf.ln(8)
+
+    if metadata_lineas:
+        pdf.ln(4)
+        pdf.set_font("helvetica", style="B", size=10)
+        pdf.cell(0, 8, "Parametros del Reporte", new_x="LMARGIN", new_y="NEXT")
+        pdf.set_font("helvetica", size=10)
+        for linea in metadata_lineas:
+            pdf.cell(0, 7, str(linea), new_x="LMARGIN", new_y="NEXT")
 
     # Guardo el archivo
     if not nombre_reporte.endswith(".pdf"):
@@ -95,6 +183,8 @@ def generador_reportes_estadisticos(
         )
 
     clientes_filtrado = df_clientes.copy()
+    fecha_inicio_reporte = fecha_inicio
+    fecha_fin_reporte = fecha_fin
 
     if "Fecha_Registro" in clientes_filtrado.columns:
         clientes_filtrado["Fecha_Registro"] = pd.to_datetime(
@@ -132,6 +222,7 @@ def generador_reportes_estadisticos(
     df_final = clientes_filtrado[columnas_reporte]
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    rango_fechas = formatear_rango_fechas(fecha_inicio_reporte, fecha_fin_reporte)
 
     if formato.lower() in ["txt", "ambos"]:
         etiqueta_tipo = (
@@ -144,9 +235,7 @@ def generador_reportes_estadisticos(
             f.write(
                 f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
-            f.write(
-                f"Fechas: {fecha_inicio} a {fecha_fin} | Tipo: {tipo_cliente} | Canal: {canal}\n"
-            )
+            f.write(f"{rango_fechas} | Tipo: {tipo_cliente} | Canal: {canal}\n")
             f.write("-" * 85 + "\n\n")
 
             if df_final.empty:
@@ -167,7 +256,16 @@ def generador_reportes_estadisticos(
             tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
         )
         nombre_pdf = f"Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.pdf"
-        exportar_pdf(df_final, nombre_pdf, "reportes_estadisticos")
+        metadata_pdf_estadistico = [
+            rango_fechas,
+            f"Tipo: {tipo_cliente} | Canal: {canal}",
+        ]
+        exportar_pdf(
+            df_final,
+            nombre_pdf,
+            "reportes_estadisticos",
+            metadata_lineas=metadata_pdf_estadistico,
+        )
 
 
 # hace lo mismo que generador_reportes_estadisticos, pero con reportes contables
@@ -180,6 +278,10 @@ def generador_reportes_contables(
     estado_movimiento="Todos",
 ):
     sin_datos = df_movimientos.empty
+    total_clientes_activos_bbdd = None
+    total_cuentas_activas_bbdd = None
+    total_tarjetas_activas_bbdd = None
+
     if sin_datos:
         print("[AVISO] No hay datos de movimientos para generar este reporte contable.")
 
@@ -225,6 +327,29 @@ def generador_reportes_contables(
     elif usa_formato_v2:
         df_trabajo = df_movimientos.copy()
 
+        if "Total_Clientes_Activos_BBDD" in df_trabajo.columns:
+            total_clientes_activos_bbdd = int(
+                pd.to_numeric(
+                    df_trabajo["Total_Clientes_Activos_BBDD"], errors="coerce"
+                )
+                .fillna(0)
+                .max()
+            )
+        if "Total_Cuentas_Activas_BBDD" in df_trabajo.columns:
+            total_cuentas_activas_bbdd = int(
+                pd.to_numeric(df_trabajo["Total_Cuentas_Activas_BBDD"], errors="coerce")
+                .fillna(0)
+                .max()
+            )
+        if "Total_Tarjetas_Activas_BBDD" in df_trabajo.columns:
+            total_tarjetas_activas_bbdd = int(
+                pd.to_numeric(
+                    df_trabajo["Total_Tarjetas_Activas_BBDD"], errors="coerce"
+                )
+                .fillna(0)
+                .max()
+            )
+
         # Asegura tipos numéricos para todos los cálculos agregados.
         for columna_monto in ["Ingreso", "Egreso", "Neto", "Comision"]:
             if columna_monto in df_trabajo.columns:
@@ -254,12 +379,13 @@ def generador_reportes_contables(
                 "cliente": [
                     "ID_Cliente",
                     "Titular",
-                    "Nro_Cuentas_Cliente",
-                    "Nro_Tarjetas_Cliente",
+                    "Estado_Cliente",
+                    "Nro_Cuentas_Activas",
+                    "Nro_Tarjetas_Activas",
                 ],
-                "cuenta": ["Cuenta", "Titular"],
-                "canal": ["Canal_Descripcion"],
-                "tarjeta": ["Tarjeta", "Titular", "Tipo_Tarjeta"],
+                "cuenta": ["Cuenta", "Titular", "Estado_Cuenta"],
+                "canal": ["Canal_Descripcion", "Onboardings_Canal"],
+                "tarjeta": ["Tarjeta", "Titular", "Tipo_Tarjeta", "Estado_Tarjeta"],
             }
 
             group_cols = [
@@ -344,6 +470,7 @@ def generador_reportes_contables(
                 )
                 columnas_canal = [
                     "Canal_Descripcion",
+                    "Onboardings_Canal",
                     "Ingresos",
                     "Egresos",
                     "Neto",
@@ -362,6 +489,16 @@ def generador_reportes_contables(
 
             if agrupar_por.lower() == "tarjeta" and "Tarjeta" in df_pivot.columns:
                 df_pivot = df_pivot.rename(columns={"Tarjeta": "Nro_Tarjeta"})
+
+            # Renombres solicitados para compactar encabezados en reportes contables.
+            renombres_contables = {
+                "Estado_Cliente": "Estado",
+                "Estado_Cuenta": "Estado",
+                "Estado_Tarjeta": "Estado",
+                "Cantidad_Movimientos": "Nro_Movimientos",
+                "Mov_Transferencia_Interbancaria": "Mov_Transferencia",
+            }
+            df_pivot = df_pivot.rename(columns=renombres_contables)
     else:
         if (
             columna_agrupacion not in df_movimientos.columns
@@ -389,6 +526,47 @@ def generador_reportes_contables(
             ).reset_index()
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    resumen_pdf_contable = []
+    rango_fechas = formatear_rango_fechas(fecha_inicio, fecha_fin)
+
+    if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
+        resumen_pdf_contable.append(
+            ("TOTAL INGRESOS", f"{df_pivot['Ingresos'].sum():,.2f}")
+        )
+        resumen_pdf_contable.append(
+            ("TOTAL EGRESOS", f"{df_pivot['Egresos'].sum():,.2f}")
+        )
+        resumen_pdf_contable.append(("NETO TOTAL", f"{df_pivot['Neto'].sum():,.2f}"))
+        resumen_pdf_contable.append(
+            ("TOTAL COMISIONES", f"{df_pivot['Comisiones'].sum():,.2f}")
+        )
+
+        columna_volumen_pdf = (
+            "Nro_Movimientos"
+            if "Nro_Movimientos" in df_pivot.columns
+            else "Volumen_Transacciones"
+            if "Volumen_Transacciones" in df_pivot.columns
+            else "Cantidad_Movimientos"
+        )
+        if columna_volumen_pdf in df_pivot.columns:
+            resumen_pdf_contable.append(
+                ("MOVIMIENTOS ANALIZADOS", int(df_pivot[columna_volumen_pdf].sum()))
+            )
+
+        if agrupar_por.lower() == "cliente" and total_clientes_activos_bbdd is not None:
+            resumen_pdf_contable.append(
+                ("TOTAL CLIENTES ACTIVOS", total_clientes_activos_bbdd)
+            )
+
+        if agrupar_por.lower() == "cuenta" and total_cuentas_activas_bbdd is not None:
+            resumen_pdf_contable.append(
+                ("TOTAL CUENTAS ACTIVAS", total_cuentas_activas_bbdd)
+            )
+
+        if agrupar_por.lower() == "tarjeta" and total_tarjetas_activas_bbdd is not None:
+            resumen_pdf_contable.append(
+                ("TOTAL TARJETAS ACTIVAS", total_tarjetas_activas_bbdd)
+            )
 
     if formato.lower() in ["txt", "ambos"]:
         nombre_archivo = f"reportes_generados/reportes_contables/Reporte_Contable_Para_{agrupar_por.capitalize()}_{timestamp}.txt"
@@ -399,9 +577,7 @@ def generador_reportes_contables(
                 f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
             f.write(f"Agrupado por: {agrupar_por.upper()}\n")
-            f.write(
-                f"Fechas: {fecha_inicio} a {fecha_fin} | Estado: {estado_movimiento}\n"
-            )
+            f.write(f"{rango_fechas} | Estado: {estado_movimiento}\n")
             f.write("-" * 50 + "\n\n")
             f.write(df_pivot.to_string(index=False))
 
@@ -423,12 +599,40 @@ def generador_reportes_contables(
                         f"MOVIMIENTOS ANALIZADOS: {int(df_pivot[columna_volumen].sum())}\n"
                     )
 
+                if (
+                    agrupar_por.lower() == "cliente"
+                    and total_clientes_activos_bbdd is not None
+                ):
+                    f.write(f"TOTAL CLIENTES ACTIVOS: {total_clientes_activos_bbdd}\n")
+
+                if (
+                    agrupar_por.lower() == "cuenta"
+                    and total_cuentas_activas_bbdd is not None
+                ):
+                    f.write(f"TOTAL CUENTAS ACTIVAS: {total_cuentas_activas_bbdd}\n")
+
+                if (
+                    agrupar_por.lower() == "tarjeta"
+                    and total_tarjetas_activas_bbdd is not None
+                ):
+                    f.write(f"TOTAL TARJETAS ACTIVAS: {total_tarjetas_activas_bbdd}\n")
+
         print(f"[TXT OK] Reporte contable generado en: {nombre_archivo}")
 
     # genera el PDF para el reporte contable
     if formato.lower() in ["pdf", "ambos"]:
         nombre_pdf = f"Reporte_Contable_Para_{agrupar_por}_{timestamp}.pdf"
-        exportar_pdf(df_pivot, nombre_pdf, "reportes_contables")
+        metadata_pdf_contable = [
+            f"Agrupado por: {agrupar_por.upper()}",
+            f"{rango_fechas} | Estado: {estado_movimiento}",
+        ]
+        exportar_pdf(
+            df_pivot,
+            nombre_pdf,
+            "reportes_contables",
+            resumen_tabla=resumen_pdf_contable,
+            metadata_lineas=metadata_pdf_contable,
+        )
 
 
 # Esta funcion hace el reporte de clientes eliminados por inactividad

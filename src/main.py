@@ -108,19 +108,26 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     mu.nro_cuenta AS "Cuenta",
                     cu.id_cliente AS "ID_Cliente",
                     COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org, 'SIN TITULAR') AS "Titular",
-                    COALESCE(cc.nro_cuentas_cliente, 0) AS "Nro_Cuentas_Cliente",
-                    COALESCE(tc.nro_tarjetas_cliente, 0) AS "Nro_Tarjetas_Cliente",
+                    c.estado AS "Estado_Cliente",
+                    COALESCE(cc.nro_cuentas_activas, 0) AS "Nro_Cuentas_Activas",
+                    COALESCE(tc.nro_tarjetas_activas, 0) AS "Nro_Tarjetas_Activas",
                     cu.tipo_cuenta AS "Tipo_Cuenta",
+                    cu.estado AS "Estado_Cuenta",
                     can.tipo_canal AS "Canal_Tx",
                     can.descripcion AS "Canal_Descripcion",
+                    COALESCE(ob.nro_onboardings, 0) AS "Onboardings_Canal",
                     COALESCE(pos.nro_tarjeta, ecom.nro_tarjeta, atm.nro_tarjeta, 'N/A') AS "Tarjeta",
                     COALESCE(t.tipo_tarjeta, 'N/A') AS "Tipo_Tarjeta",
+                    COALESCE(t.estado, 'N/A') AS "Estado_Tarjeta",
                     COALESCE(marca.nombre_marca, 'N/A') AS "Marca_Tarjeta",
                     tm.descripcion AS "Tipo_Movimiento",
                     mu.ingreso AS "Ingreso",
                     mu.egreso AS "Egreso",
                     mu.monto_comision AS "Comision",
                     (mu.ingreso - mu.egreso) AS "Neto",
+                    totales.total_clientes_activos AS "Total_Clientes_Activos_BBDD",
+                    totales.total_cuentas_activas AS "Total_Cuentas_Activas_BBDD",
+                    totales.total_tarjetas_activas AS "Total_Tarjetas_Activas_BBDD",
                     mu.saldo_previo AS "Saldo_Previo",
                     mu.saldo_nuevo AS "Saldo_Nuevo",
                     banco_origen.nombre_banco AS "Banco_Origen",
@@ -132,16 +139,31 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                 LEFT JOIN "usb_bank"."CLIENTE_NATURAL" cn ON c.id_cliente = cn.id_cliente
                 LEFT JOIN "usb_bank"."CLIENTE_JURIDICO" cj ON c.id_cliente = cj.id_cliente
                 LEFT JOIN (
-                    SELECT id_cliente, COUNT(DISTINCT nro_cuenta) AS nro_cuentas_cliente
+                    SELECT id_cliente, COUNT(DISTINCT nro_cuenta) AS nro_cuentas_activas
                     FROM "usb_bank"."CUENTA"
+                    WHERE LOWER(estado) = 'activa'
                     GROUP BY id_cliente
                 ) cc ON cu.id_cliente = cc.id_cliente
                 LEFT JOIN (
-                    SELECT cu2.id_cliente, COUNT(DISTINCT t2.nro_tarjeta) AS nro_tarjetas_cliente
+                    SELECT cu2.id_cliente, COUNT(DISTINCT t2.nro_tarjeta) AS nro_tarjetas_activas
                     FROM "usb_bank"."CUENTA" cu2
-                    LEFT JOIN "usb_bank"."TARJETA" t2 ON cu2.nro_cuenta = t2.nro_cuenta
+                    LEFT JOIN "usb_bank"."TARJETA" t2
+                      ON cu2.nro_cuenta = t2.nro_cuenta
+                     AND LOWER(t2.estado) = 'activa'
                     GROUP BY cu2.id_cliente
                 ) tc ON cu.id_cliente = tc.id_cliente
+                LEFT JOIN (
+                    SELECT id_canal_onboarding AS id_canal, COUNT(*) AS nro_onboardings
+                    FROM "usb_bank"."CLIENTE"
+                    GROUP BY id_canal_onboarding
+                ) ob ON mu.id_canal = ob.id_canal
+                CROSS JOIN (
+                    SELECT
+                        COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
+                        (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu3 WHERE LOWER(cu3.estado) = 'activa') AS total_cuentas_activas,
+                        (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas
+                    FROM "usb_bank"."CLIENTE" c3
+                ) totales
                 JOIN "usb_bank"."CANAL" can ON mu.id_canal = can.id_canal
                 JOIN "usb_bank"."TIPO_MOVIMIENTO" tm ON mu.id_tipo_mov = tm.id_tipo_mov
                 JOIN "usb_bank"."BANCO" banco_origen ON mu.id_banco_origen = banco_origen.id_banco
