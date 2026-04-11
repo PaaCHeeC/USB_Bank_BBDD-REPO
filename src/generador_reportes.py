@@ -296,8 +296,9 @@ def generador_reportes_estadisticos(
                 & (clientes_filtrado["Fecha_Registro"] <= fecha_fin)
             ]
     if tipo_cliente and tipo_cliente != "Todos":
+        letra_tipo = 'N' if 'Natural' in tipo_cliente else 'J'
         clientes_filtrado = clientes_filtrado[
-            clientes_filtrado["Tipo_Cliente"] == tipo_cliente
+            clientes_filtrado["Tipo_Cliente"] == letra_tipo
         ]
 
     if canal and canal != "Todos":

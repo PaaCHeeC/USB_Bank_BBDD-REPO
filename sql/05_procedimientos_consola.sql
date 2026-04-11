@@ -17,11 +17,12 @@ DECLARE
     ancho_canal CONSTANT INT := 16;
     ancho_cuentas CONSTANT INT := 14;
     ancho_tarjetas CONSTANT INT := 15;
-    ancho_fecha CONSTANT INT := 12;
+    ancho_fecha CONSTANT INT := 14;
     ancho_debe CONSTANT INT := 10;
     ancho_haber CONSTANT INT := 10;
     ancho_saldo CONSTANT INT := 15;
     linea_separadora TEXT;
+
     v_total_ingresos NUMERIC := 0;
     v_total_egresos NUMERIC := 0;
     v_balance_neto NUMERIC := 0;
@@ -31,6 +32,7 @@ DECLARE
     v_onboarding_portal_web BIGINT := 0;
     v_onboarding_app_movil BIGINT := 0;
     v_rango_fechas TEXT;
+    v_hay_datos BOOLEAN := FALSE;
 BEGIN
     linea_separadora := REPEAT(
         '-',
@@ -53,79 +55,21 @@ BEGIN
     RAISE NOTICE '%', linea_separadora;
 
     FOR registro IN (
-        WITH base_clientes AS (
-            SELECT
-                c.id_cliente AS "ID_Cliente",
-                COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org) AS "Titular",
-                CASE
-                    WHEN c.tipo_cliente = 'Natural' THEN 'N'
-                    ELSE 'J'
-                END AS "Tipo_Cliente",
-                CASE
-                    WHEN can.descripcion ILIKE '%Web%' THEN 'W'
-                    WHEN can.descripcion ILIKE '%Movil%' THEN 'M'
-                    ELSE 'O'
-                END AS "Canal_Onboarding",
-                COALESCE(cu.cuentas, 0) AS "Total_Cuentas",
-                COALESCE(tj.tarjetas, 0) AS "Total_Tarjetas",
-                c.fecha_registro::DATE AS "Fecha_Registro",
-                COALESCE(cu.saldo_total_cuenta, 0.00) AS "Saldo_Total"
-            FROM "usb_bank"."CLIENTE" c
-            LEFT JOIN "usb_bank"."CLIENTE_NATURAL" cn ON c.id_cliente = cn.id_cliente
-            LEFT JOIN "usb_bank"."CLIENTE_JURIDICO" cj ON c.id_cliente = cj.id_cliente
-            JOIN "usb_bank"."CANAL" can ON c.id_canal_onboarding = can.id_canal
-            LEFT JOIN (
-                SELECT id_cliente, SUM(saldo) AS saldo_total_cuenta, COUNT(id_cliente) AS cuentas
-                FROM "usb_bank"."CUENTA"
-                GROUP BY id_cliente
-            ) cu ON c.id_cliente = cu.id_cliente
-            LEFT JOIN (
-                SELECT cu2.id_cliente, COUNT(DISTINCT t2.nro_tarjeta) AS tarjetas
-                FROM "usb_bank"."CUENTA" cu2
-                JOIN "usb_bank"."TARJETA" t2 ON cu2.nro_cuenta = t2.nro_cuenta
-                GROUP BY cu2.id_cliente
-            ) tj ON c.id_cliente = tj.id_cliente
-        ),
-        movimientos_por_cliente AS (
-            WITH movimientos_filtrados AS (
-                SELECT m.*
-                FROM "usb_bank"."MOVIMIENTO" m
-                WHERE (p_fecha_inicio IS NULL OR m.fecha >= p_fecha_inicio::timestamp)
-                  AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
-            ),
-            movimientos_unificados AS (
-                SELECT m.nro_cuenta_origen AS nro_cuenta, m.monto_egreso AS egreso, 0.00::numeric AS ingreso
-                FROM movimientos_filtrados m
-                UNION ALL
-                SELECT m.nro_cuenta_destino AS nro_cuenta, 0.00::numeric AS egreso, m.monto_ingreso AS ingreso
-                FROM movimientos_filtrados m
-            )
-            SELECT
-                cu_mov.id_cliente,
-                COALESCE(SUM(mu.ingreso), 0.00) AS debe,
-                COALESCE(SUM(mu.egreso), 0.00) AS haber
-            FROM movimientos_unificados mu
-            JOIN "usb_bank"."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
-            WHERE (mu.ingreso + mu.egreso) > 0
-            GROUP BY cu_mov.id_cliente
-        )
-        SELECT
-            bc."ID_Cliente",
-            bc."Titular",
-            bc."Tipo_Cliente",
-            bc."Canal_Onboarding",
-            bc."Total_Cuentas",
-            bc."Total_Tarjetas",
-            bc."Fecha_Registro",
-            COALESCE(mp.debe, 0.00) AS debe,
-            COALESCE(mp.haber, 0.00) AS haber,
-            bc."Saldo_Total"
-        FROM base_clientes bc
-        LEFT JOIN movimientos_por_cliente mp ON bc."ID_Cliente" = mp.id_cliente
-        WHERE (LOWER(COALESCE(p_tipo_cliente, 'Todos')) = 'todos' OR bc."Tipo_Cliente" = p_tipo_cliente)
-          AND (LOWER(COALESCE(p_canal_onboarding, 'Todos')) = 'todos' OR bc."Canal_Onboarding" = p_canal_onboarding)
-        ORDER BY bc."ID_Cliente"
+        SELECT *
+        FROM "usb_bank"."fn_reporte_estadistico"(p_fecha_inicio, p_fecha_fin)
+        WHERE (LOWER(COALESCE(p_tipo_cliente, 'Todos')) = 'todos' OR "Tipo_Cliente" = p_tipo_cliente)
+          AND (LOWER(COALESCE(p_canal_onboarding, 'Todos')) = 'todos' OR "Canal_Onboarding" = p_canal_onboarding)
+        ORDER BY "ID_Cliente"
     ) LOOP
+        v_hay_datos := TRUE;
+        v_total_ingresos := v_total_ingresos + COALESCE(registro."Debe", 0);
+        v_total_egresos := v_total_egresos + COALESCE(registro."Haber", 0);
+        v_total_clientes_activos := registro."Total_Clientes_Activos";
+        v_total_cuentas_activas := registro."Total_Cuentas_Activas";
+        v_total_tarjetas_activas := registro."Total_Tarjetas_Activas";
+        v_onboarding_portal_web := registro."Onboarding_Portal_Web";
+        v_onboarding_app_movil := registro."Onboarding_App_Movil";
+
         RAISE NOTICE '| % | % | % | % | % | % | % | % | % | % |',
             LPAD(registro."ID_Cliente"::TEXT, ancho_id),
             RPAD(COALESCE(SUBSTRING(registro."Titular", 1, ancho_titular), ''), ancho_titular),
@@ -134,59 +78,32 @@ BEGIN
             LPAD(COALESCE(registro."Total_Cuentas", 0)::TEXT, ancho_cuentas),
             LPAD(COALESCE(registro."Total_Tarjetas", 0)::TEXT, ancho_tarjetas),
             RPAD(COALESCE(TO_CHAR(registro."Fecha_Registro", 'YYYY-MM-DD'), ''), ancho_fecha),
-            LPAD(REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(registro.debe, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.'), ancho_debe),
-            LPAD(REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(registro.haber, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.'), ancho_haber),
+            LPAD(REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(registro."Debe", 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.'), ancho_debe),
+            LPAD(REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(registro."Haber", 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.'), ancho_haber),
             LPAD(REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(registro."Saldo_Total", 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.'), ancho_saldo);
     END LOOP;
 
     RAISE NOTICE '%', linea_separadora;
 
-    WITH movimientos_filtrados AS (
-        SELECT m.*
-        FROM "usb_bank"."MOVIMIENTO" m
-        WHERE (p_fecha_inicio IS NULL OR m.fecha >= p_fecha_inicio::timestamp)
-          AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
-    ),
-    movimientos_unificados AS (
+    IF NOT v_hay_datos THEN
         SELECT
-            m.nro_cuenta_origen AS nro_cuenta,
-            m.monto_egreso AS egreso,
-            0.00::numeric AS ingreso
-        FROM movimientos_filtrados m
-
-        UNION ALL
-
-        SELECT
-            m.nro_cuenta_destino AS nro_cuenta,
-            0.00::numeric AS egreso,
-            m.monto_ingreso AS ingreso
-        FROM movimientos_filtrados m
-    )
-    SELECT
-        COALESCE(SUM(mu.ingreso), 0.00),
-        COALESCE(SUM(mu.egreso), 0.00)
-    INTO v_total_ingresos, v_total_egresos
-    FROM movimientos_unificados mu
-    JOIN "usb_bank"."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
-    WHERE (mu.ingreso + mu.egreso) > 0;
+            COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo'),
+            (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu WHERE LOWER(cu.estado) = 'activa'),
+            (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t WHERE LOWER(t.estado) = 'activa'),
+            COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%portal web%'),
+            COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%app movil%')
+        INTO
+            v_total_clientes_activos,
+            v_total_cuentas_activas,
+            v_total_tarjetas_activas,
+            v_onboarding_portal_web,
+            v_onboarding_app_movil
+        FROM "usb_bank"."CLIENTE" c
+        JOIN "usb_bank"."CANAL" can ON can.id_canal = c.id_canal_onboarding
+        WHERE LOWER(c.estado) = 'activo';
+    END IF;
 
     v_balance_neto := v_total_ingresos - v_total_egresos;
-
-    SELECT
-        COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo'),
-        (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu WHERE LOWER(cu.estado) = 'activa'),
-        (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t WHERE LOWER(t.estado) = 'activa'),
-        COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%portal web%'),
-        COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%app movil%')
-    INTO
-        v_total_clientes_activos,
-        v_total_cuentas_activas,
-        v_total_tarjetas_activas,
-        v_onboarding_portal_web,
-        v_onboarding_app_movil
-    FROM "usb_bank"."CLIENTE" c
-    JOIN "usb_bank"."CANAL" can ON can.id_canal = c.id_canal_onboarding
-    WHERE LOWER(c.estado) = 'activo';
 
     v_rango_fechas := CASE
         WHEN p_fecha_inicio IS NULL AND p_fecha_fin IS NULL THEN 'Todos los registros hasta la fecha'
