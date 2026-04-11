@@ -34,10 +34,10 @@ AS $$
         CASE
             WHEN c.tipo_cliente = 'Natural' THEN 'N'
             ELSE 'J' END AS "Tipo_Cliente",
-        CASE 
+        CASE
             WHEN can.descripcion ILIKE '%Web%' THEN 'W'
             WHEN can.descripcion ILIKE '%Movil%' THEN 'M'
-            ELSE 'O' 
+            ELSE 'O'
         END AS "Canal_Onboarding",
         COALESCE(cu_agg.cuentas, 0) AS "Total_Cuentas",
         COALESCE(t_agg.tarjetas, 0) AS "Total_Tarjetas",
@@ -71,12 +71,12 @@ AS $$
     ) t_agg ON c.id_cliente = t_agg.id_cliente
     CROSS JOIN (
         SELECT
-            COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
             (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu3 WHERE LOWER(cu3.estado) = 'activa') AS total_cuentas_activas,
             (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas,
-            COUNT(*) FILTER (WHERE LOWER(can3.descripcion) LIKE '%portal web%') AS onboarding_portal_web,
-            COUNT(*) FILTER (WHERE LOWER(can3.descripcion) LIKE '%app movil%') AS onboarding_app_movil,
-            COUNT(*) FILTER (WHERE LOWER(can3.descripcion) NOT LIKE '%portal web%' AND LOWER(can3.descripcion) NOT LIKE '%app movil%') AS onboarding_ivr_otros
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(can3.descripcion) LIKE '%portal web%') AS onboarding_portal_web,
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(can3.descripcion) LIKE '%app movil%') AS onboarding_app_movil,
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(can3.descripcion) NOT LIKE '%portal web%' AND LOWER(can3.descripcion) NOT LIKE '%app movil%') AS onboarding_ivr_otros
         FROM "usb_bank"."CLIENTE" c3
         JOIN "usb_bank"."CANAL" can3 ON can3.id_canal = c3.id_canal_onboarding
         WHERE LOWER(c3.estado) = 'activo'

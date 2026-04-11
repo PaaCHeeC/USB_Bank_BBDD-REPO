@@ -48,7 +48,11 @@ AS $$
           AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
           AND (
                 LOWER(COALESCE(p_estado_movimiento, 'Todos')) = 'todos'
-                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
+                                OR (
+                                        LOWER(p_estado_movimiento) = 'completado'
+                                        AND LOWER(m.estado) = 'completado'
+                                )
+                                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
               )
     ),
     movimientos_unificados AS (
@@ -137,14 +141,14 @@ AS $$
         GROUP BY cu2.id_cliente
     ) tc ON cu.id_cliente = tc.id_cliente
     LEFT JOIN (
-        SELECT id_canal_onboarding AS id_canal, COUNT(*) AS nro_onboardings
+        SELECT id_canal_onboarding AS id_canal, COUNT(DISTINCT id_cliente) AS nro_onboardings
         FROM "usb_bank"."CLIENTE"
         WHERE LOWER(estado) = 'activo'
         GROUP BY id_canal_onboarding
     ) ob ON c.id_canal_onboarding = ob.id_canal
     CROSS JOIN (
         SELECT
-            COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
             (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu3 WHERE LOWER(cu3.estado) = 'activa') AS total_cuentas_activas,
             (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas
         FROM "usb_bank"."CLIENTE" c3
@@ -209,7 +213,11 @@ AS $$
           AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
           AND (
                 LOWER(COALESCE(p_estado_movimiento, 'Todos')) = 'todos'
-                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
+                                OR (
+                                        LOWER(p_estado_movimiento) = 'completado'
+                                        AND LOWER(m.estado) = 'completado'
+                                )
+                                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
               )
     ),
     movimientos_unificados AS (
@@ -304,14 +312,14 @@ AS $$
         GROUP BY cu2.id_cliente
     ) tc ON cu.id_cliente = tc.id_cliente
     LEFT JOIN (
-        SELECT id_canal_onboarding AS id_canal, COUNT(*) AS nro_onboardings
+        SELECT id_canal_onboarding AS id_canal, COUNT(DISTINCT id_cliente) AS nro_onboardings
         FROM "usb_bank"."CLIENTE"
         WHERE LOWER(estado) = 'activo'
         GROUP BY id_canal_onboarding
     ) ob ON c.id_canal_onboarding = ob.id_canal
     CROSS JOIN (
         SELECT
-            COUNT(*) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
+            COUNT(DISTINCT c3.id_cliente) FILTER (WHERE LOWER(c3.estado) = 'activo') AS total_clientes_activos,
             (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu3 WHERE LOWER(cu3.estado) = 'activa') AS total_cuentas_activas,
             (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t3 WHERE LOWER(t3.estado) = 'activa') AS total_tarjetas_activas
         FROM "usb_bank"."CLIENTE" c3
@@ -509,4 +517,3 @@ $$;
 -- SELECT * FROM "usb_bank"."fn_reporte_contable_cuenta"('2026-01-01', '2026-12-31', 'Todos');
 -- SELECT * FROM "usb_bank"."fn_reporte_contable_canal"(NULL, NULL, 'Todos');
 -- SELECT * FROM "usb_bank"."fn_reporte_contable_tarjeta"(NULL, NULL, 'Todos');
-

@@ -296,7 +296,7 @@ def generador_reportes_estadisticos(
                 & (clientes_filtrado["Fecha_Registro"] <= fecha_fin)
             ]
     if tipo_cliente and tipo_cliente != "Todos":
-        letra_tipo = 'N' if 'Natural' in tipo_cliente else 'J'
+        letra_tipo = "N" if "Natural" in tipo_cliente else "J"
         clientes_filtrado = clientes_filtrado[
             clientes_filtrado["Tipo_Cliente"] == letra_tipo
         ]
@@ -516,6 +516,7 @@ def generador_reportes_contables(
     total_clientes_activos_bbdd = None
     total_cuentas_activas_bbdd = None
     total_tarjetas_activas_bbdd = None
+    total_movimientos_unicos = 0
 
     if sin_datos:
         print("[AVISO] No hay datos de movimientos para generar este reporte contable.")
@@ -610,6 +611,9 @@ def generador_reportes_contables(
                 ]
             )
         else:
+            if "Referencia" in df_trabajo.columns:
+                total_movimientos_unicos = int(df_trabajo["Referencia"].nunique())
+
             columnas_contexto = {
                 "cliente": [
                     "ID_Cliente",
@@ -817,7 +821,7 @@ def generador_reportes_contables(
         )
         if columna_volumen_pdf in df_pivot.columns:
             resumen_pdf_contable.append(
-                ("MOVIMIENTOS ANALIZADOS", int(df_pivot[columna_volumen_pdf].sum()))
+                ("MOVIMIENTOS ANALIZADOS", total_movimientos_unicos)
             )
 
         if agrupar_por.lower() == "cliente" and total_clientes_activos_bbdd is not None:
@@ -874,9 +878,7 @@ def generador_reportes_contables(
                     else "Cantidad_Movimientos"
                 )
                 if columna_volumen in df_pivot.columns:
-                    f.write(
-                        f"MOVIMIENTOS ANALIZADOS: {int(df_pivot[columna_volumen].sum())}\n"
-                    )
+                    f.write(f"MOVIMIENTOS ANALIZADOS: {total_movimientos_unicos}\n")
 
                 if (
                     agrupar_por.lower() == "cliente"

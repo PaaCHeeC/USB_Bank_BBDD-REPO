@@ -83,15 +83,29 @@ class InterfazBanco(ctk.CTk):
         draw.ellipse((2, 2, size - 2, size - 2), fill=(245, 158, 11, 255))
         draw.ellipse((4, 4, size - 4, size - 4), outline=(146, 64, 14, 255), width=2)
         draw.line((size // 2, 5, size // 2, size - 5), fill=(146, 64, 14, 255), width=2)
-        draw.arc((size // 2 - 4, 5, size - 6, size // 2), start=90, end=270, fill=(146, 64, 14, 255), width=2)
-        draw.arc((6, size // 2, size // 2 + 4, size - 5), start=270, end=90, fill=(146, 64, 14, 255), width=2)
+        draw.arc(
+            (size // 2 - 4, 5, size - 6, size // 2),
+            start=90,
+            end=270,
+            fill=(146, 64, 14, 255),
+            width=2,
+        )
+        draw.arc(
+            (6, size // 2, size // 2 + 4, size - 5),
+            start=270,
+            end=90,
+            fill=(146, 64, 14, 255),
+            width=2,
+        )
         return img
 
     def _icono_auditoria(self, size):
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
         draw = ImageDraw.Draw(img)
         draw.ellipse((2, 2, size - 8, size - 8), outline=(14, 116, 144, 255), width=3)
-        draw.line((size - 8, size - 8, size - 2, size - 2), fill=(14, 116, 144, 255), width=3)
+        draw.line(
+            (size - 8, size - 8, size - 2, size - 2), fill=(14, 116, 144, 255), width=3
+        )
         return img
 
     def _crear_iconos_nav(self, size=18):
@@ -174,7 +188,13 @@ class InterfazBanco(ctk.CTk):
             self.combo_filtro.set("Cliente")
             self.combo_estado.configure(
                 state="normal",
-                values=["Todos", "Completado", "Pendiente", "Fallido", "Reversado"],
+                values=[
+                    "Todos",
+                    "Completado",
+                    "Pendiente",
+                    "Fallido",
+                    "Reversado",
+                ],
             )
             self.combo_estado.set("Todos")
             self.entry_inicio.configure(state="normal")
@@ -513,7 +533,13 @@ class InterfazBanco(ctk.CTk):
 
         self.combo_estado = ctk.CTkComboBox(
             self.form_frame,
-            values=["Todos", "Completado", "Pendiente", "Fallido", "Reversado"],
+            values=[
+                "Todos",
+                "Completado",
+                "Pendiente",
+                "Fallido",
+                "Reversado",
+            ],
             height=45,
             corner_radius=8,
         )

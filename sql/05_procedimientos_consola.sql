@@ -87,11 +87,11 @@ BEGIN
 
     IF NOT v_hay_datos THEN
         SELECT
-            COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo'),
+            COUNT(DISTINCT c.id_cliente) FILTER (WHERE LOWER(c.estado) = 'activo'),
             (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu WHERE LOWER(cu.estado) = 'activa'),
             (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t WHERE LOWER(t.estado) = 'activa'),
-            COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%portal web%'),
-            COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%app movil%')
+            COUNT(DISTINCT c.id_cliente) FILTER (WHERE LOWER(can.descripcion) LIKE '%portal web%'),
+            COUNT(DISTINCT c.id_cliente) FILTER (WHERE LOWER(can.descripcion) LIKE '%app movil%')
         INTO
             v_total_clientes_activos,
             v_total_cuentas_activas,
@@ -406,7 +406,6 @@ BEGIN
         FROM "usb_bank"."REPORTE_CLIENTES_ELIMINADOS"
         ORDER BY fecha_eliminacion DESC, id_cliente
     ) LOOP
-        total_eliminados := total_eliminados + 1;
         RAISE NOTICE '| % | % | % | % | % |',
             RPAD(TO_CHAR(registro.fecha_eliminacion, 'YYYY-MM-DD HH24:MI:SS'), w_fecha),
             LPAD(COALESCE(registro.id_cliente, 0)::TEXT, w_id),
@@ -414,6 +413,10 @@ BEGIN
             RPAD(COALESCE(SUBSTRING(registro.nombre_cliente, 1, w_nombre), 'SIN NOMBRE'), w_nombre),
             LPAD(COALESCE(registro.cantidad_cuentas, 0)::TEXT, w_cuentas);
     END LOOP;
+
+    SELECT COUNT(DISTINCT id_cliente)
+    INTO total_eliminados
+    FROM "usb_bank"."REPORTE_CLIENTES_ELIMINADOS";
 
     RAISE NOTICE '%', linea_separadora;
     RAISE NOTICE 'TOTAL CLIENTES ELIMINADOS: %', total_eliminados;
