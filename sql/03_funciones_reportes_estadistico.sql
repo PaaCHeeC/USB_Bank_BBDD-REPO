@@ -10,11 +10,11 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_estadistico"(
 RETURNS TABLE (
     "ID_Cliente" INTEGER,
     "Nombre" TEXT,
-    "Tipo_Cliente" VARCHAR(20),
-    "Canal_Afiliacion" VARCHAR(50),
+    "Tipo_Cliente" VARCHAR(1),
+    "Canal_Afiliacion" VARCHAR(1),
     "Total_Productos" BIGINT,
     "Saldo_Total" NUMERIC,
-    "Fecha_Registro" TIMESTAMP,
+    "Fecha_Registro" DATE,
     "Total_Clientes_Activos" BIGINT,
     "Total_Cuentas_Activas" BIGINT,
     "Total_Tarjetas_Activas" BIGINT,
@@ -30,19 +30,26 @@ AS $$
     SELECT
         c.id_cliente AS "ID_Cliente",
         COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org) AS "Nombre",
-        c.tipo_cliente AS "Tipo_Cliente",
-        can.tipo_canal AS "Canal_Afiliacion",
+        CASE
+            WHEN c.tipo_cliente = 'Natural' THEN 'N'
+            ELSE 'J'
+        END AS "Tipo_Cliente",
+        CASE
+            WHEN can.descripcion ILIKE '%Web%' THEN 'W'
+            WHEN can.descripcion ILIKE '%Movil%' THEN 'M'
+            ELSE 'O'
+        END AS "Canal_Afiliacion",
         COALESCE(cu.cuentas, 0) AS "Total_Productos",
         COALESCE(cu.saldo_total_cuenta, 0.00) AS "Saldo_Total",
-        c.fecha_registro AS "Fecha_Registro",
+        c.fecha_registro::DATE AS "Fecha_Registro",
         kpi.total_clientes_activos AS "Total_Clientes_Activos",
         kpi.total_cuentas_activas AS "Total_Cuentas_Activas",
         kpi.total_tarjetas_activas AS "Total_Tarjetas_Activas",
         kpi.onboarding_portal_web AS "Onboarding_Portal_Web",
         kpi.onboarding_app_movil AS "Onboarding_App_Movil",
         kpi.onboarding_ivr_otros AS "Onboarding_IVR_Otros",
-        mov.total_ingresos AS "Total_Ingresos_Periodo",
-        mov.total_egresos AS "Total_Egresos_Periodo"
+        COALESCE(mov.total_ingresos, 0.00) AS "Total_Ingresos_Periodo",
+        COALESCE(mov.total_egresos, 0.00) AS "Total_Egresos_Periodo"
     FROM "usb_bank"."CLIENTE" c
     LEFT JOIN "usb_bank"."CLIENTE_NATURAL" cn ON c.id_cliente = cn.id_cliente
     LEFT JOIN "usb_bank"."CLIENTE_JURIDICO" cj ON c.id_cliente = cj.id_cliente
@@ -70,7 +77,7 @@ AS $$
         JOIN "usb_bank"."CANAL" can2 ON can2.id_canal = c2.id_canal_onboarding
         WHERE LOWER(c2.estado) = 'activo'
     ) kpi
-    CROSS JOIN (
+    LEFT JOIN (
         WITH movimientos_filtrados AS (
             SELECT m.*
             FROM "usb_bank"."MOVIMIENTO" m
@@ -93,11 +100,13 @@ AS $$
             FROM movimientos_filtrados m
         )
         SELECT
+            cu_mov.id_cliente,
             COALESCE(SUM(mu.ingreso), 0.00) AS total_ingresos,
             COALESCE(SUM(mu.egreso), 0.00) AS total_egresos
         FROM movimientos_unificados mu
         JOIN "usb_bank"."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
         WHERE (mu.ingreso + mu.egreso) > 0
-    ) mov
+        GROUP BY cu_mov.id_cliente
+    ) mov ON c.id_cliente = mov.id_cliente
     ORDER BY c.id_cliente;
 $$;
