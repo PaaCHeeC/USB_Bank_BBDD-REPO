@@ -11,6 +11,8 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     registro RECORD;
+    v_tipo_cliente_filtro TEXT := 'Todos';
+    v_canal_onboarding_filtro TEXT := 'Todos';
     ancho_id CONSTANT INT := 6;
     ancho_titular CONSTANT INT := 30;
     ancho_tipo CONSTANT INT := 12;
@@ -34,6 +36,29 @@ DECLARE
     v_rango_fechas TEXT;
     v_hay_datos BOOLEAN := FALSE;
 BEGIN
+    v_tipo_cliente_filtro := LOWER(COALESCE(p_tipo_cliente, 'Todos'));
+    IF v_tipo_cliente_filtro IN ('natural', 'juridico', 'jurídico') THEN
+        v_tipo_cliente_filtro := CASE
+            WHEN v_tipo_cliente_filtro = 'natural' THEN 'N'
+            ELSE 'J'
+        END;
+    ELSIF v_tipo_cliente_filtro IN ('n', 'j') THEN
+        v_tipo_cliente_filtro := UPPER(v_tipo_cliente_filtro);
+    ELSIF v_tipo_cliente_filtro IN ('todos', '') THEN
+        v_tipo_cliente_filtro := 'Todos';
+    END IF;
+
+    v_canal_onboarding_filtro := LOWER(COALESCE(p_canal_onboarding, 'Todos'));
+    IF v_canal_onboarding_filtro IN ('web', 'portal web', 'portal_web', 'w') THEN
+        v_canal_onboarding_filtro := 'W';
+    ELSIF v_canal_onboarding_filtro IN ('movil', 'móvil', 'movil ', 'app movil', 'app móvil', 'm') THEN
+        v_canal_onboarding_filtro := 'M';
+    ELSIF v_canal_onboarding_filtro IN ('ivr', 'otros', 'o') THEN
+        v_canal_onboarding_filtro := 'O';
+    ELSIF v_canal_onboarding_filtro IN ('todos', '') THEN
+        v_canal_onboarding_filtro := 'Todos';
+    END IF;
+
     linea_separadora := REPEAT(
         '-',
         ancho_id + ancho_titular + ancho_tipo + ancho_canal + ancho_cuentas +
@@ -57,8 +82,8 @@ BEGIN
     FOR registro IN (
         SELECT *
         FROM "usb_bank"."fn_reporte_estadistico"(p_fecha_inicio, p_fecha_fin)
-        WHERE (LOWER(COALESCE(p_tipo_cliente, 'Todos')) = 'todos' OR "Tipo_Cliente" = p_tipo_cliente)
-          AND (LOWER(COALESCE(p_canal_onboarding, 'Todos')) = 'todos' OR "Canal_Onboarding" = p_canal_onboarding)
+                WHERE (LOWER(COALESCE(v_tipo_cliente_filtro, 'Todos')) = 'todos' OR "Tipo_Cliente" = v_tipo_cliente_filtro)
+                    AND (LOWER(COALESCE(v_canal_onboarding_filtro, 'Todos')) = 'todos' OR "Canal_Onboarding" = v_canal_onboarding_filtro)
         ORDER BY "ID_Cliente"
     ) LOOP
         v_hay_datos := TRUE;
@@ -145,6 +170,7 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
     registro RECORD;
+    v_estado_filtro TEXT := 'Todos';
     w_id CONSTANT INT := 4;
     w_tit CONSTANT INT := 30;
     w_est CONSTANT INT := 8;
@@ -170,6 +196,16 @@ DECLARE
     v_total_cuentas_activas BIGINT := 0;
     v_total_tarjetas_activas BIGINT := 0;
 BEGIN
+    v_estado_filtro := LOWER(COALESCE(p_estado, 'Todos'));
+    IF v_estado_filtro LIKE 'estado %' THEN
+        v_estado_filtro := SUBSTRING(v_estado_filtro FROM 8);
+    END IF;
+    IF v_estado_filtro IN ('completado', 'pendiente', 'fallido', 'reversado') THEN
+        v_estado_filtro := INITCAP(v_estado_filtro);
+    ELSIF v_estado_filtro IN ('todos', '') THEN
+        v_estado_filtro := 'Todos';
+    END IF;
+
     IF LOWER(COALESCE(p_agrupar_por, 'cliente')) = 'cliente' THEN
         linea_separadora := REPEAT(
             '-',
@@ -198,7 +234,7 @@ BEGIN
 
         FOR registro IN (
             SELECT *
-            FROM "usb_bank"."fn_reporte_contable_cliente"(p_fecha_inicio, p_fecha_fin, p_estado)
+            FROM "usb_bank"."fn_reporte_contable_cliente"(p_fecha_inicio, p_fecha_fin, v_estado_filtro)
         ) LOOP
             RAISE NOTICE '| % | % | % | % | % | % | % | % | % | % | % | % | % | % | % |',
                 LPAD(COALESCE(registro."ID", 0)::TEXT, w_id),
@@ -242,7 +278,7 @@ BEGIN
 
         FOR registro IN (
             SELECT *
-            FROM "usb_bank"."fn_reporte_contable_cuenta"(p_fecha_inicio, p_fecha_fin, p_estado)
+            FROM "usb_bank"."fn_reporte_contable_cuenta"(p_fecha_inicio, p_fecha_fin, v_estado_filtro)
         ) LOOP
             RAISE NOTICE '| % | % | % | % | % | % | % | % | % | % | % | % | % | % |',
                 RPAD(COALESCE(registro."Nro_Cuenta", ''), 20),
@@ -278,7 +314,7 @@ BEGIN
 
         FOR registro IN (
             SELECT *
-            FROM "usb_bank"."fn_reporte_contable_canal"(p_fecha_inicio, p_fecha_fin, p_estado)
+            FROM "usb_bank"."fn_reporte_contable_canal"(p_fecha_inicio, p_fecha_fin, v_estado_filtro)
         ) LOOP
             RAISE NOTICE '| % | % | % | % | % | % | % |',
                 RPAD(COALESCE(SUBSTRING(registro."Canal_Descripcion", 1, 30), ''), 30),
@@ -312,7 +348,7 @@ BEGIN
 
         FOR registro IN (
             SELECT *
-            FROM "usb_bank"."fn_reporte_contable_tarjeta"(p_fecha_inicio, p_fecha_fin, p_estado)
+            FROM "usb_bank"."fn_reporte_contable_tarjeta"(p_fecha_inicio, p_fecha_fin, v_estado_filtro)
         ) LOOP
             RAISE NOTICE '| % | % | % | % | % | % | % | % | % | % | % | % |',
                 RPAD(COALESCE(registro."Nro_Tarjeta", ''), 16),
@@ -350,7 +386,7 @@ BEGIN
         v_total_clientes_activos,
         v_total_cuentas_activas,
         v_total_tarjetas_activas
-    FROM "usb_bank"."fn_reporte_contable_detalle"(p_fecha_inicio, p_fecha_fin, p_estado) d;
+    FROM "usb_bank"."fn_reporte_contable_detalle"(p_fecha_inicio, p_fecha_fin, v_estado_filtro) d;
 
     v_balance_neto := v_total_ingresos - v_total_egresos;
 

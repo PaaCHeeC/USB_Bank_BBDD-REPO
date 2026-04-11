@@ -41,19 +41,21 @@ RETURNS TABLE (
 LANGUAGE SQL
 STABLE
 AS $$
-    WITH movimientos_filtrados AS (
+    WITH estado_normalizado AS (
+        SELECT CASE
+            WHEN p_estado_movimiento IS NULL OR BTRIM(p_estado_movimiento) = '' THEN 'Todos'
+            WHEN LOWER(BTRIM(p_estado_movimiento)) LIKE 'estado %' THEN SUBSTRING(LOWER(BTRIM(p_estado_movimiento)) FROM 8)
+            ELSE LOWER(BTRIM(p_estado_movimiento))
+        END AS estado_filtro
+    ), movimientos_filtrados AS (
         SELECT m.*
         FROM "usb_bank"."MOVIMIENTO" m
         WHERE (p_fecha_inicio IS NULL OR m.fecha >= p_fecha_inicio::timestamp)
           AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
-          AND (
-                LOWER(COALESCE(p_estado_movimiento, 'Todos')) = 'todos'
-                                OR (
-                                        LOWER(p_estado_movimiento) = 'completado'
-                                        AND LOWER(m.estado) = 'completado'
-                                )
-                                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
-              )
+                    AND (
+                                LOWER((SELECT estado_filtro FROM estado_normalizado)) = 'todos'
+                                OR LOWER(m.estado) = LOWER((SELECT estado_filtro FROM estado_normalizado))
+                            )
     ),
     movimientos_unificados AS (
         SELECT
@@ -206,19 +208,21 @@ RETURNS TABLE (
 LANGUAGE SQL
 STABLE
 AS $$
-    WITH movimientos_filtrados AS (
+    WITH estado_normalizado AS (
+        SELECT CASE
+            WHEN p_estado_movimiento IS NULL OR BTRIM(p_estado_movimiento) = '' THEN 'Todos'
+            WHEN LOWER(BTRIM(p_estado_movimiento)) LIKE 'estado %' THEN SUBSTRING(LOWER(BTRIM(p_estado_movimiento)) FROM 8)
+            ELSE LOWER(BTRIM(p_estado_movimiento))
+        END AS estado_filtro
+    ), movimientos_filtrados AS (
         SELECT m.*
         FROM "usb_bank"."MOVIMIENTO" m
         WHERE (p_fecha_inicio IS NULL OR m.fecha >= p_fecha_inicio::timestamp)
           AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
-          AND (
-                LOWER(COALESCE(p_estado_movimiento, 'Todos')) = 'todos'
-                                OR (
-                                        LOWER(p_estado_movimiento) = 'completado'
-                                        AND LOWER(m.estado) = 'completado'
-                                )
-                                OR LOWER(m.estado) = LOWER(p_estado_movimiento)
-              )
+                    AND (
+                                LOWER((SELECT estado_filtro FROM estado_normalizado)) = 'todos'
+                                OR LOWER(m.estado) = LOWER((SELECT estado_filtro FROM estado_normalizado))
+                            )
     ),
     movimientos_unificados AS (
         SELECT
