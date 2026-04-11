@@ -302,10 +302,17 @@ def generador_reportes_estadisticos(
         ]
 
     if canal and canal != "Todos":
+        if 'Web' in canal:
+            letra_canal = 'W'
+        elif 'Movil' in canal or 'Móvil' in canal:
+            letra_canal = 'M'
+        else:
+            letra_canal = 'O'
+            
         clientes_filtrado = clientes_filtrado[
-            clientes_filtrado["Canal_Onboarding"] == canal
+            clientes_filtrado["Canal_Onboarding"] == letra_canal
         ]
-
+        
     columnas_deseadas = [
         "ID_Cliente",
         "Titular",
