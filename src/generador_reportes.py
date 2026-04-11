@@ -88,6 +88,7 @@ def exportar_pdf(
     metadata_lineas=None,
     secciones_resumen=None,
     saldo_total_texto=None,
+    anchos_columnas=None,
 ):
     columnas = [str(col) for col in datos.columns.tolist()]
     subcarpetas_formato_corporativo = {
@@ -141,7 +142,7 @@ def exportar_pdf(
         if subcarpeta in subcarpetas_formato_corporativo
         else FontFace(emphasis="B")
     )
-    with pdf.table(text_align="CENTER", headings_style=encabezado_style) as table:
+    with pdf.table(text_align="CENTER", headings_style=encabezado_style, col_widths=anchos_columnas) as table:
         encabezado = table.row()
         for col_name in columnas:
             encabezado.cell(col_name)
@@ -442,6 +443,9 @@ def generador_reportes_estadisticos(
                 ],
             },
         ]
+        
+        anchos_estadisticos = (11, 29, 11, 12, 12, 12, 18, 15, 15, 20)
+        
         exportar_pdf(
             df_final_export,
             nombre_pdf,
@@ -449,6 +453,7 @@ def generador_reportes_estadisticos(
             metadata_lineas=metadata_pdf_estadistico,
             secciones_resumen=secciones_resumen_estadistico,
             saldo_total_texto=f"VES {formatear_monto_ves(saldo_total_general)}",
+            anchos_columnas=anchos_estadisticos
         )
 
 
