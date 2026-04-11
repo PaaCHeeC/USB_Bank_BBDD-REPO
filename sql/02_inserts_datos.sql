@@ -114,6 +114,7 @@ INSERT INTO "CLIENTE_NATURAL" (id_cliente, primer_nombre, inicial_seg_nombre, ap
 (7, 'Sofia', 'I', 'Ramirez', '1996-06-25', 'Administradora'), (8, 'Fabian', 'J', 'Garcia', '1991-12-08', 'Programador'),
 (9, 'Natalia', 'C', 'Pineda', '1994-04-19', 'Docente'), (10, 'Ricardo', 'T', 'Lopez', '1989-08-03', 'Comerciante'),
 (11, 'Valentina', 'S', 'Castro', '1997-10-14', 'Analista'), (12, 'Hector', 'D', 'Palma', '1990-02-27', 'Consultor'),
+(21, 'Rosa', 'V', 'Ramirez', '1996-02-08', 'Ingeniera'),
 (998, 'Ernesto', 'R', 'Guevara', '1990-01-01', 'Estudiante'), (999, 'Maria', 'F', 'Perez', '1990-01-01', 'Comerciante')
 ON CONFLICT DO NOTHING;
 
@@ -228,6 +229,7 @@ INSERT INTO "CUENTA" (
 ('01010000000000000018', 18, 2, 'Corriente', '2024-08-16 09:30:00', 22600.00, 14000.00, 0.00, 'VES', 'activa'),
 ('01010000000000000019', 19, 2, 'Corriente', '2025-03-02 10:00:00', 30100.00, 17500.00, 0.00, 'VES', 'activa'),
 ('01010000000000000020', 20, 2, 'Corriente', '2025-04-11 11:00:00', 19800.00, 13000.00, 0.00, 'VES', 'activa'),
+('01010000000000000041', 21, 1, 'Ahorro', '2023-12-02 10:00:00', 23000.00, 1000.00, 1.00, 'VES', 'activa'),
 ('0000-TEST-0000-0998', 998, 1, 'Ahorro', '2023-12-02 10:00:00', 100.00, 1000.00, 1.00, 'VES', 'activa'),
 ('0000-TEST-0000-0999', 999, 1, 'Ahorro', '2023-12-02 10:00:00', 100.00, 1000.00, 1.00, 'VES', 'activa')
 ON CONFLICT DO NOTHING;

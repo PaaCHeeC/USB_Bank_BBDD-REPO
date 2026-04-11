@@ -132,6 +132,11 @@ def exportar_pdf(
     saldo_total_texto=None,
     anchos_columnas=None,
 ):
+    def texto_pdf(valor):
+        if pd.isna(valor):
+            return ""
+        return str(valor)
+
     columnas = [str(col) for col in datos.columns.tolist()]
     columnas_pdf = normalizar_nombres_columnas_visuales(columnas, subcarpeta)
     subcarpetas_formato_corporativo = {
@@ -175,7 +180,7 @@ def exportar_pdf(
     )
     pdf.ln(5)
 
-    filas = datos.astype(str).values.tolist()
+    filas = datos.values.tolist()
 
     # dibujo la tabla especificada
     tam_fuente_tabla = 8 if len(columnas) > 10 else 9
@@ -196,7 +201,7 @@ def exportar_pdf(
         for fila_datos in filas:
             fila = table.row()
             for item in fila_datos:
-                fila.cell(item)
+                fila.cell(texto_pdf(item))
 
     if subcarpeta == "reportes_estadisticos":
         pdf.ln(5)
@@ -221,8 +226,8 @@ def exportar_pdf(
         value_w = page_width_usable * 0.3
         for etiqueta, valor in resumen_tabla:
             pdf.set_fill_color(*PASTEL_BLUE)
-            pdf.cell(label_w, 8, str(etiqueta), border=1, align="L", fill=True)
-            pdf.cell(value_w, 8, str(valor), border=1, align="R", fill=True)
+            pdf.cell(label_w, 8, texto_pdf(etiqueta), border=1, align="L", fill=True)
+            pdf.cell(value_w, 8, texto_pdf(valor), border=1, align="R", fill=True)
             pdf.ln(8)
 
     if secciones_resumen:
@@ -243,8 +248,10 @@ def exportar_pdf(
 
             for etiqueta, valor in filas_seccion:
                 pdf.set_fill_color(*PASTEL_BLUE)
-                pdf.cell(label_w, 8, str(etiqueta), border=1, align="L", fill=True)
-                pdf.cell(value_w, 8, str(valor), border=1, align="R", fill=True)
+                pdf.cell(
+                    label_w, 8, texto_pdf(etiqueta), border=1, align="L", fill=True
+                )
+                pdf.cell(value_w, 8, texto_pdf(valor), border=1, align="R", fill=True)
                 pdf.ln(8)
 
     if metadata_lineas:
@@ -253,7 +260,7 @@ def exportar_pdf(
         pdf.cell(0, 8, "Parametros del Reporte", new_x="LMARGIN", new_y="NEXT")
         pdf.set_font("helvetica", size=10)
         for linea in metadata_lineas:
-            pdf.cell(0, 7, str(linea), new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(0, 7, texto_pdf(linea), new_x="LMARGIN", new_y="NEXT")
 
     # Guardo el archivo
     if not nombre_reporte.endswith(".pdf"):
@@ -302,17 +309,17 @@ def generador_reportes_estadisticos(
         ]
 
     if canal and canal != "Todos":
-        if 'Web' in canal:
-            letra_canal = 'W'
-        elif 'Movil' in canal or 'Móvil' in canal:
-            letra_canal = 'M'
+        if "Web" in canal:
+            letra_canal = "W"
+        elif "Movil" in canal or "Móvil" in canal:
+            letra_canal = "M"
         else:
-            letra_canal = 'O'
-            
+            letra_canal = "O"
+
         clientes_filtrado = clientes_filtrado[
             clientes_filtrado["Canal_Onboarding"] == letra_canal
         ]
-        
+
     columnas_deseadas = [
         "ID_Cliente",
         "Titular",
