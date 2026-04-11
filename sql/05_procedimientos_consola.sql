@@ -22,6 +22,15 @@ DECLARE
     ancho_haber CONSTANT INT := 10;
     ancho_saldo CONSTANT INT := 15;
     linea_separadora TEXT;
+    v_total_ingresos NUMERIC := 0;
+    v_total_egresos NUMERIC := 0;
+    v_balance_neto NUMERIC := 0;
+    v_total_clientes_activos BIGINT := 0;
+    v_total_cuentas_activas BIGINT := 0;
+    v_total_tarjetas_activas BIGINT := 0;
+    v_onboarding_portal_web BIGINT := 0;
+    v_onboarding_app_movil BIGINT := 0;
+    v_rango_fechas TEXT;
 BEGIN
     linea_separadora := REPEAT(
         '-',
@@ -131,6 +140,81 @@ BEGIN
     END LOOP;
 
     RAISE NOTICE '%', linea_separadora;
+
+    WITH movimientos_filtrados AS (
+        SELECT m.*
+        FROM "usb_bank"."MOVIMIENTO" m
+        WHERE (p_fecha_inicio IS NULL OR m.fecha >= p_fecha_inicio::timestamp)
+          AND (p_fecha_fin IS NULL OR m.fecha < (p_fecha_fin + INTERVAL '1 day'))
+    ),
+    movimientos_unificados AS (
+        SELECT
+            m.nro_cuenta_origen AS nro_cuenta,
+            m.monto_egreso AS egreso,
+            0.00::numeric AS ingreso
+        FROM movimientos_filtrados m
+
+        UNION ALL
+
+        SELECT
+            m.nro_cuenta_destino AS nro_cuenta,
+            0.00::numeric AS egreso,
+            m.monto_ingreso AS ingreso
+        FROM movimientos_filtrados m
+    )
+    SELECT
+        COALESCE(SUM(mu.ingreso), 0.00),
+        COALESCE(SUM(mu.egreso), 0.00)
+    INTO v_total_ingresos, v_total_egresos
+    FROM movimientos_unificados mu
+    JOIN "usb_bank"."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
+    WHERE (mu.ingreso + mu.egreso) > 0;
+
+    v_balance_neto := v_total_ingresos - v_total_egresos;
+
+    SELECT
+        COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo'),
+        (SELECT COUNT(*) FROM "usb_bank"."CUENTA" cu WHERE LOWER(cu.estado) = 'activa'),
+        (SELECT COUNT(*) FROM "usb_bank"."TARJETA" t WHERE LOWER(t.estado) = 'activa'),
+        COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%portal web%'),
+        COUNT(*) FILTER (WHERE LOWER(can.descripcion) LIKE '%app movil%')
+    INTO
+        v_total_clientes_activos,
+        v_total_cuentas_activas,
+        v_total_tarjetas_activas,
+        v_onboarding_portal_web,
+        v_onboarding_app_movil
+    FROM "usb_bank"."CLIENTE" c
+    JOIN "usb_bank"."CANAL" can ON can.id_canal = c.id_canal_onboarding
+    WHERE LOWER(c.estado) = 'activo';
+
+    v_rango_fechas := CASE
+        WHEN p_fecha_inicio IS NULL AND p_fecha_fin IS NULL THEN 'Todos los registros hasta la fecha'
+        ELSE FORMAT(
+            'Desde %s Hasta %s',
+            COALESCE(TO_CHAR(p_fecha_inicio, 'YYYY-MM-DD'), 'N/A'),
+            COALESCE(TO_CHAR(p_fecha_fin, 'YYYY-MM-DD'), 'N/A')
+        )
+    END;
+
+    RAISE NOTICE '';
+    RAISE NOTICE 'Resumen de Operaciones (%)', v_rango_fechas;
+    RAISE NOTICE '-----------------------------------------------------------';
+    RAISE NOTICE 'TOTAL GENERAL DE INGRESOS (DEBE): VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_total_ingresos, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'TOTAL GENERAL DE EGRESOS (HABER): VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_total_egresos, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'BALANCE NETO DEL PERIODO: VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_balance_neto, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+
+    RAISE NOTICE '';
+    RAISE NOTICE 'Información del Sistema';
+    RAISE NOTICE '-----------------------';
+    RAISE NOTICE 'TOTAL CLIENTES ACTIVOS: %', COALESCE(v_total_clientes_activos, 0);
+    RAISE NOTICE 'TOTAL CUENTAS ACTIVAS: %', COALESCE(v_total_cuentas_activas, 0);
+    RAISE NOTICE 'TOTAL TARJETAS ACTIVAS: %', COALESCE(v_total_tarjetas_activas, 0);
+    RAISE NOTICE 'Onboarding por Canal - Portal Web: % clientes', COALESCE(v_onboarding_portal_web, 0);
+    RAISE NOTICE 'Onboarding por Canal - App Móvil: % clientes', COALESCE(v_onboarding_app_movil, 0);
 END;
 $$;
 
@@ -160,6 +244,14 @@ DECLARE
     w_mov_atm CONSTANT INT := 14;
     w_mov_trans CONSTANT INT := 18;
     linea_separadora TEXT;
+    v_total_ingresos NUMERIC := 0;
+    v_total_egresos NUMERIC := 0;
+    v_balance_neto NUMERIC := 0;
+    v_total_comisiones NUMERIC := 0;
+    v_movimientos_analizados BIGINT := 0;
+    v_total_clientes_activos BIGINT := 0;
+    v_total_cuentas_activas BIGINT := 0;
+    v_total_tarjetas_activas BIGINT := 0;
 BEGIN
     IF LOWER(COALESCE(p_agrupar_por, 'cliente')) = 'cliente' THEN
         linea_separadora := REPEAT(
@@ -178,7 +270,7 @@ BEGIN
             LPAD('Ingresos', w_ing),
             LPAD('Egresos', w_egr),
             LPAD('Neto', w_net),
-            LPAD('Comision', w_com),
+            LPAD('Comisión', w_com),
             LPAD('Nro Movimientos', w_nro_mov),
             LPAD('Mov Pago Ecommerce', w_mov_ecom),
             LPAD('Mov Pago Movil', w_mov_pm),
@@ -221,10 +313,10 @@ BEGIN
             LPAD('Ingresos', 10),
             LPAD('Egresos', 10),
             LPAD('Neto', 11),
-            LPAD('Comision', 10),
+            LPAD('Comisión', 10),
             LPAD('Nro Movimientos', 15),
             LPAD('Total Cuentas BBDD', 18),
-            LPAD('Mov Ecommerce', 14),
+            LPAD('Mov Pago Ecommerce', 14),
             LPAD('Mov Pago Movil', 14),
             LPAD('Mov POS', 10),
             LPAD('Mov ATM', 10),
@@ -258,12 +350,12 @@ BEGIN
         linea_separadora := REPEAT('-', 120);
         RAISE NOTICE '%', linea_separadora;
         RAISE NOTICE '| % | % | % | % | % | % | % |',
-            RPAD('Canal Descripcion', 30),
+            RPAD('Canal Descripción', 30),
             LPAD('Onboardings', 12),
             LPAD('Ingresos', 11),
             LPAD('Egresos', 11),
             LPAD('Neto', 11),
-            LPAD('Comisiones', 11),
+            LPAD('Comisión', 11),
             LPAD('Nro Movimientos', 15);
         RAISE NOTICE '%', linea_separadora;
 
@@ -294,9 +386,9 @@ BEGIN
             LPAD('Ingresos', 10),
             LPAD('Egresos', 10),
             LPAD('Neto', 10),
-            LPAD('Comisiones', 10),
+            LPAD('Comisión', 10),
             LPAD('Nro Movimientos', 15),
-            LPAD('Mov Ecommerce', 14),
+            LPAD('Mov Pago Ecommerce', 14),
             LPAD('Mov POS', 10),
             LPAD('Mov ATM', 10);
         RAISE NOTICE '%', linea_separadora;
@@ -323,6 +415,45 @@ BEGIN
         RAISE NOTICE '%', linea_separadora;
     ELSE
         RAISE EXCEPTION 'agrupar_por invalido: %. Use cliente, cuenta, canal o tarjeta.', p_agrupar_por;
+    END IF;
+
+    SELECT
+        COALESCE(SUM(d."Ingreso"), 0.00),
+        COALESCE(SUM(d."Egreso"), 0.00),
+        COALESCE(SUM(d."Comision"), 0.00),
+        COALESCE(COUNT(DISTINCT d."Referencia"), 0),
+        COALESCE(MAX(d."Total_Clientes_Activos_BBDD"), 0),
+        COALESCE(MAX(d."Total_Cuentas_Activas_BBDD"), 0),
+        COALESCE(MAX(d."Total_Tarjetas_Activas_BBDD"), 0)
+    INTO
+        v_total_ingresos,
+        v_total_egresos,
+        v_total_comisiones,
+        v_movimientos_analizados,
+        v_total_clientes_activos,
+        v_total_cuentas_activas,
+        v_total_tarjetas_activas
+    FROM "usb_bank"."fn_reporte_contable_detalle"(p_fecha_inicio, p_fecha_fin, p_estado) d;
+
+    v_balance_neto := v_total_ingresos - v_total_egresos;
+
+    RAISE NOTICE '';
+    RAISE NOTICE 'TOTAL GENERAL DE INGRESOS (DEBE): VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_total_ingresos, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'TOTAL GENERAL DE EGRESOS (HABER): VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_total_egresos, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'BALANCE NETO DEL PERIODO: VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_balance_neto, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'TOTAL COMISIONES: VES %',
+        REPLACE(REPLACE(REPLACE(TO_CHAR(COALESCE(v_total_comisiones, 0), 'FM999,999,999,990.00'), ',', '_'), '.', ','), '_', '.');
+    RAISE NOTICE 'MOVIMIENTOS ANALIZADOS: %', COALESCE(v_movimientos_analizados, 0);
+
+    IF LOWER(COALESCE(p_agrupar_por, 'cliente')) = 'cliente' THEN
+        RAISE NOTICE 'TOTAL CLIENTES ACTIVOS: %', COALESCE(v_total_clientes_activos, 0);
+    ELSIF LOWER(p_agrupar_por) = 'cuenta' THEN
+        RAISE NOTICE 'TOTAL CUENTAS ACTIVAS: %', COALESCE(v_total_cuentas_activas, 0);
+    ELSIF LOWER(p_agrupar_por) = 'tarjeta' THEN
+        RAISE NOTICE 'TOTAL TARJETAS ACTIVAS: %', COALESCE(v_total_tarjetas_activas, 0);
     END IF;
 END;
 $$;
