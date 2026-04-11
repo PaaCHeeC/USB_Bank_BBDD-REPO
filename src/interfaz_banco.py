@@ -66,6 +66,8 @@ class InterfazBanco(ctk.CTk):
         self.crear_panel_lateral()
         self.crear_panel_central()
         self.update_ui_colors()
+        
+        self.cambiar_seccion("estadistico")
 
     def _icono_estadistico(self, size):
         img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
@@ -136,7 +138,7 @@ class InterfazBanco(ctk.CTk):
             "inicio": inicio if inicio else None,
             "fin": fin if fin else None,
             "tipo": self.combo_filtro.get(),
-            "canal": "Todos",
+            "canal": self.combo_canal.get() if hasattr(self, 'combo_canal') and self.seccion_activa == "estadistico" else "Todos",
             "estado_movimiento": estado if estado else "Todos",
             "agrupar_por": self.combo_filtro.get().lower()
             if self.seccion_activa == "contable"
@@ -170,6 +172,7 @@ class InterfazBanco(ctk.CTk):
         if seccion == "estadistico":
             self.titulo_seccion.configure(text="Reportes Estadísticos")
             self._mostrar_filtro()
+            self._mostrar_canal()
             self._ocultar_estado()
             self.combo_filtro.configure(
                 state="normal", values=["Todos", "Natural", "Juridico"]
@@ -181,6 +184,7 @@ class InterfazBanco(ctk.CTk):
         elif seccion == "contable":
             self.titulo_seccion.configure(text="Reporte Contable")
             self._mostrar_filtro()
+            self._ocultar_canal()
             self._mostrar_estado()
             self.combo_filtro.configure(
                 state="normal", values=["Cliente", "Cuenta", "Canal", "Tarjeta"]
@@ -203,6 +207,7 @@ class InterfazBanco(ctk.CTk):
         elif seccion == "auditoria":
             self.titulo_seccion.configure(text="Auditoría y Limpieza")
             self._ocultar_filtro()
+            self._ocultar_canal()
             self._ocultar_estado()
             self.entry_inicio.configure(state="normal")
             self.entry_fin.configure(state="normal")
@@ -220,13 +225,22 @@ class InterfazBanco(ctk.CTk):
     def _ocultar_filtro(self):
         self.lbl_filtro.grid_remove()
         self.combo_filtro.grid_remove()
+        
+    def _mostrar_canal(self):
+        self.lbl_canal.grid(row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w")
+        self.combo_canal.grid(row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew")
+
+    def _ocultar_canal(self):
+        if hasattr(self, 'lbl_canal'):
+            self.lbl_canal.grid_remove()
+            self.combo_canal.grid_remove()
 
     def _mostrar_estado(self):
         self.lbl_estado.grid(
-            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+            row=6, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
         )
         self.combo_estado.grid(
-            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+            row=7, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
 
     def _ocultar_estado(self):
@@ -281,6 +295,7 @@ class InterfazBanco(ctk.CTk):
                 self.lbl_inicio,
                 self.lbl_fin,
                 self.lbl_filtro,
+                self.lbl_canal,
                 self.lbl_estado,
             ]:
                 lbl.configure(text_color=c["text_secondary"])
@@ -298,6 +313,16 @@ class InterfazBanco(ctk.CTk):
                 text_color=c["text_primary"],
             )
             self.combo_filtro.configure(
+                fg_color=input_bg,
+                border_color=c["card_border"],
+                text_color=c["text_primary"],
+                button_color=c["btn_neutral"],
+                button_hover_color=c["btn_neutral_hover"],
+                dropdown_fg_color=c["card"],
+                dropdown_hover_color=c["btn_neutral_hover"],
+                dropdown_text_color=c["text_primary"],
+            )
+            self.combo_canal.configure(
                 fg_color=input_bg,
                 border_color=c["card_border"],
                 text_color=c["text_primary"],
@@ -521,6 +546,22 @@ class InterfazBanco(ctk.CTk):
         self.combo_filtro.grid(
             row=3, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
+        
+        self.lbl_canal = ctk.CTkLabel(
+            self.form_frame,
+            text="Canal de Onboarding",
+            font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
+        )
+        self.lbl_canal.grid(row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w")
+
+        self.combo_canal = ctk.CTkComboBox(
+            self.form_frame,
+            values=["Todos", "Web", "Móvil", "Otro"],
+            height=45,
+            corner_radius=8,
+        )
+        self.combo_canal.set("Todos")
+        self.combo_canal.grid(row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew")
 
         self.lbl_estado = ctk.CTkLabel(
             self.form_frame,
@@ -528,7 +569,7 @@ class InterfazBanco(ctk.CTk):
             font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
         )
         self.lbl_estado.grid(
-            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+            row=6, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
         )
 
         self.combo_estado = ctk.CTkComboBox(
@@ -545,8 +586,10 @@ class InterfazBanco(ctk.CTk):
         )
         self.combo_estado.set("Todos")
         self.combo_estado.grid(
-            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+            row=7, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
+        
+        self._ocultar_canal()
         self._ocultar_estado()
 
         btn_box = ctk.CTkFrame(self.frame_central, fg_color="transparent")
