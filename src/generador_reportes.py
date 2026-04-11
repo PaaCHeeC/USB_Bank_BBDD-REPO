@@ -355,13 +355,13 @@ def generador_reportes_estadisticos(
     onboarding_app_movil = 0
 
     if not df_clientes.empty:
-        if "Debe" in df_clientes.columns:
+        if "Debe" in df_final.columns:
             total_ingresos_periodo = float(
-                pd.to_numeric(df_clientes["Debe"], errors="coerce").fillna(0).sum()
+                pd.to_numeric(df_final["Debe"], errors="coerce").fillna(0).sum()
             )
-        if "Haber" in df_clientes.columns:
+        if "Haber" in df_final.columns:
             total_egresos_periodo = float(
-                pd.to_numeric(df_clientes["Haber"], errors="coerce").fillna(0).sum()
+                pd.to_numeric(df_final["Haber"], errors="coerce").fillna(0).sum()
             )
         if "Total_Clientes_Activos" in df_clientes.columns:
             total_clientes_activos = int(
@@ -734,6 +734,8 @@ def generador_reportes_contables(
                     [col for col in columnas_canal if col in df_pivot.columns]
                 ]
                 df_pivot = df_pivot.sort_values(by="Nro_Movimientos", ascending=False)
+            elif agrupar_por.lower() == "cliente":
+                df_pivot = df_pivot.sort_values(by="ID_Cliente", ascending=True)
             else:
                 df_pivot = df_pivot.sort_values(by="Neto", ascending=False)
 

@@ -425,7 +425,7 @@ $$;
 
 -- Ejemplos de llamada de los procedimientos:
 -- CALL "usb_bank"."sp_imprimir_reporte_estadistico"();
--- CALL "usb_bank"."sp_imprimir_reporte_estadistico"('2020-01-01', '2026-12-31', 'Todos', 'Todos');
+-- CALL "usb_bank"."sp_imprimir_reporte_estadistico"('2020-01-01', '2026-12-31', 'Todos', 'Natural');
 
 -- CALL "usb_bank"."sp_imprimir_reporte_contable"('cliente', NULL, NULL, 'Todos');
 -- CALL "usb_bank"."sp_imprimir_reporte_auditoria"();
