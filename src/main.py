@@ -31,14 +31,14 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                 SELECT
                     "CLIENTE".id_cliente AS "ID_Cliente",
                     COALESCE("CLIENTE_NATURAL".primer_nombre || ' ' || "CLIENTE_NATURAL".apellido,
-                             "CLIENTE_JURIDICO".nombre_org) AS "Nombre",
+                             "CLIENTE_JURIDICO".nombre_org) AS "Titular",
                     CASE
                         WHEN "CLIENTE".tipo_cliente = 'Natural' THEN 'N'
                         ELSE 'J' END AS "Tipo_Cliente",
-                    CASE 
+                    CASE
                         WHEN "CANAL".descripcion ILIKE '%%Web%%' THEN 'W'
                         WHEN "CANAL".descripcion ILIKE '%%Movil%%' THEN 'M'
-                        ELSE 'O' 
+                        ELSE 'O'
                     END AS "Canal_Onboarding",
                     COALESCE("CUENTA".cuentas, 0) AS "Total_Cuentas",
                     COALESCE("TARJETA".tarjetas, 0) AS "Total_Tarjetas",

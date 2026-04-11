@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION "usb_bank"."fn_reporte_estadistico"(
 )
 RETURNS TABLE (
     "ID_Cliente" INTEGER,
-    "Nombre" TEXT,
+    "Titular" TEXT,
     "Tipo_Cliente" VARCHAR(1),
     "Canal_Afiliacion" VARCHAR(1),
     "Total_Productos" BIGINT,
@@ -29,7 +29,7 @@ STABLE
 AS $$
     SELECT
         c.id_cliente AS "ID_Cliente",
-        COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org) AS "Nombre",
+        COALESCE(cn.primer_nombre || ' ' || cn.apellido, cj.nombre_org) AS "Titular",
         CASE
             WHEN c.tipo_cliente = 'Natural' THEN 'N'
             ELSE 'J'

@@ -44,6 +44,48 @@ def formatear_columnas_monetarias(df, columnas_monetarias):
     return df_formateado
 
 
+def normalizar_nombre_columna_visual(columna, subcarpeta):
+    nombre = " ".join(str(columna).replace("_", " ").split())
+    if nombre == "ID Cliente":
+        return "ID"
+    if subcarpeta == "reportes_contables" and nombre in {"Comision", "Comisiones"}:
+        return "Comisión"
+    return nombre
+
+
+def normalizar_nombres_columnas_visuales(columnas, subcarpeta):
+    return [
+        normalizar_nombre_columna_visual(columna, subcarpeta) for columna in columnas
+    ]
+
+
+def construir_anchos_contables_pdf(columnas):
+    anchos_por_columna = {
+        "ID_Cliente": 9,
+        "Titular": 22,
+        "Nro_Cuentas_Activas": 12,
+        "Nro_Tarjetas_Activas": 12,
+        "Cuenta": 18,
+        "Nro_Cuenta": 18,
+        "Tarjeta": 18,
+        "Nro_Tarjeta": 18,
+        "Canal_Descripcion": 22,
+        "Tipo_Movimiento": 20,
+        "Descripcion_Movimiento": 24,
+        "Comisiones": 12,
+        "Comision": 12,
+        "Comisión": 12,
+        "Ingreso": 13,
+        "Egreso": 13,
+        "Neto": 13,
+        "Nro_Movimientos": 16,
+        "Mov_Transferencia": 17,
+        "Saldo_Previo": 14,
+        "Saldo_Nuevo": 14,
+    }
+    return tuple(anchos_por_columna.get(columna, 14) for columna in columnas)
+
+
 class PDFReporte(FPDF):
     def __init__(self, orientacion, etiqueta_reporte):
         super().__init__(orientation=orientacion)
@@ -91,6 +133,7 @@ def exportar_pdf(
     anchos_columnas=None,
 ):
     columnas = [str(col) for col in datos.columns.tolist()]
+    columnas_pdf = normalizar_nombres_columnas_visuales(columnas, subcarpeta)
     subcarpetas_formato_corporativo = {
         "reportes_contables",
         "reportes_estadisticos",
@@ -142,9 +185,11 @@ def exportar_pdf(
         if subcarpeta in subcarpetas_formato_corporativo
         else FontFace(emphasis="B")
     )
-    with pdf.table(text_align="CENTER", headings_style=encabezado_style, col_widths=anchos_columnas) as table:
+    with pdf.table(
+        text_align="CENTER", headings_style=encabezado_style, col_widths=anchos_columnas
+    ) as table:
         encabezado = table.row()
-        for col_name in columnas:
+        for col_name in columnas_pdf:
             encabezado.cell(col_name)
 
         pdf.set_font(style="")
@@ -262,7 +307,7 @@ def generador_reportes_estadisticos(
 
     columnas_deseadas = [
         "ID_Cliente",
-        "Nombre",
+        "Titular",
         "Tipo_Cliente",
         "Canal_Onboarding",
         "Total_Cuentas",
@@ -297,15 +342,11 @@ def generador_reportes_estadisticos(
     if not df_clientes.empty:
         if "Debe" in df_clientes.columns:
             total_ingresos_periodo = float(
-                pd.to_numeric(df_clientes["Debe"], errors="coerce")
-                .fillna(0)
-                .sum()
+                pd.to_numeric(df_clientes["Debe"], errors="coerce").fillna(0).sum()
             )
         if "Haber" in df_clientes.columns:
             total_egresos_periodo = float(
-                pd.to_numeric(df_clientes["Haber"], errors="coerce")
-                .fillna(0)
-                .sum()
+                pd.to_numeric(df_clientes["Haber"], errors="coerce").fillna(0).sum()
             )
         if "Total_Clientes_Activos" in df_clientes.columns:
             total_clientes_activos = int(
@@ -344,6 +385,10 @@ def generador_reportes_estadisticos(
             tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
         )
         nombre_archivo = f"reportes_generados/reportes_estadisticos/Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.txt"
+        df_final_txt = df_final_export.copy()
+        df_final_txt.columns = normalizar_nombres_columnas_visuales(
+            df_final_txt.columns, "reportes_estadisticos"
+        )
         leyenda_codigos = (
             "Leyenda: Canal (M=App Móvil, W=Web) | Tipo Cliente (N=Natural, J=Jurídico)"
         )
@@ -360,7 +405,7 @@ def generador_reportes_estadisticos(
             if df_final.empty:
                 f.write("No se encontraron clientes con los criterios especificados.\n")
             else:
-                f.write(df_final_export.to_string(index=False))
+                f.write(df_final_txt.to_string(index=False))
                 f.write("\n\n" + "-" * 80 + "\n")
                 if "Saldo_Total" in df_final.columns:
                     f.write(
@@ -443,9 +488,9 @@ def generador_reportes_estadisticos(
                 ],
             },
         ]
-        
+
         anchos_estadisticos = (11, 29, 11, 12, 12, 12, 18, 15, 15, 20)
-        
+
         exportar_pdf(
             df_final_export,
             nombre_pdf,
@@ -453,7 +498,7 @@ def generador_reportes_estadisticos(
             metadata_lineas=metadata_pdf_estadistico,
             secciones_resumen=secciones_resumen_estadistico,
             saldo_total_texto=f"VES {formatear_monto_ves(saldo_total_general)}",
-            anchos_columnas=anchos_estadisticos
+            anchos_columnas=anchos_estadisticos,
         )
 
 
@@ -791,6 +836,10 @@ def generador_reportes_contables(
 
     if formato.lower() in ["txt", "ambos"]:
         nombre_archivo = f"reportes_generados/reportes_contables/Reporte_Contable_Para_{agrupar_por.capitalize()}_{timestamp}.txt"
+        df_pivot_txt = df_pivot_export.copy()
+        df_pivot_txt.columns = normalizar_nombres_columnas_visuales(
+            df_pivot_txt.columns, "reportes_contables"
+        )
 
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("REPORTE CONTABLE DE INGRESOS Y EGRESOS\n")
@@ -800,7 +849,7 @@ def generador_reportes_contables(
             f.write(f"Agrupado por: {agrupar_por.upper()}\n")
             f.write(f"{rango_fechas} | Estado: {estado_movimiento}\n")
             f.write("-" * 50 + "\n\n")
-            f.write(df_pivot_export.to_string(index=False))
+            f.write(df_pivot_txt.to_string(index=False))
 
             if usa_formato_v2 and not df_pivot.empty and "Ingresos" in df_pivot.columns:
                 f.write("\n\n" + "-" * 50 + "\n")
@@ -855,12 +904,16 @@ def generador_reportes_contables(
             f"Agrupado por: {agrupar_por.upper()}",
             f"{rango_fechas} | Estado: {estado_movimiento}",
         ]
+        anchos_contables = construir_anchos_contables_pdf(
+            df_pivot_export.columns.tolist()
+        )
         exportar_pdf(
             df_pivot_export,
             nombre_pdf,
             "reportes_contables",
             resumen_tabla=resumen_pdf_contable,
             metadata_lineas=metadata_pdf_contable,
+            anchos_columnas=anchos_contables,
         )
 
 
@@ -880,6 +933,10 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
 
     if formato.lower() in ["txt", "ambos"]:
         nombre_archivo = f"reportes_generados/reportes_auditoria/Reporte_Auditoria_Limpieza_{timestamp}.txt"
+        df_auditoria_txt = df_auditoria.copy()
+        df_auditoria_txt.columns = normalizar_nombres_columnas_visuales(
+            df_auditoria_txt.columns, "reportes_auditoria"
+        )
 
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("REPORTE DE AUDITORÍA: CLIENTES ELIMINADOS POR INACTIVIDAD\n")
@@ -887,7 +944,7 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
                 f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
             f.write("-" * 85 + "\n\n")
-            f.write(df_auditoria.to_string(index=False))
+            f.write(df_auditoria_txt.to_string(index=False))
 
         print(f"[TXT OK] Reporte de auditoría generado en: {nombre_archivo}")
 
