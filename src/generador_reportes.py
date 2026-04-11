@@ -263,7 +263,11 @@ def generador_reportes_estadisticos(
         "ID_Cliente",
         "Nombre",
         "Tipo_Cliente",
+        "Canal_Afiliacion",
+        "Fecha_Registro",
         "Total_Productos",
+        "Total_Ingresos_Periodo",
+        "Total_Egresos_Periodo",
         "Saldo_Total",
     ]
     columnas_reporte = [
@@ -293,13 +297,13 @@ def generador_reportes_estadisticos(
             total_ingresos_periodo = float(
                 pd.to_numeric(df_clientes["Total_Ingresos_Periodo"], errors="coerce")
                 .fillna(0)
-                .max()
+                .sum()
             )
         if "Total_Egresos_Periodo" in df_clientes.columns:
             total_egresos_periodo = float(
                 pd.to_numeric(df_clientes["Total_Egresos_Periodo"], errors="coerce")
                 .fillna(0)
-                .max()
+                .sum()
             )
         if "Total_Clientes_Activos" in df_clientes.columns:
             total_clientes_activos = int(

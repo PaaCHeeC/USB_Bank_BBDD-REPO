@@ -32,19 +32,25 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     "CLIENTE".id_cliente AS "ID_Cliente",
                     COALESCE("CLIENTE_NATURAL".primer_nombre || ' ' || "CLIENTE_NATURAL".apellido,
                              "CLIENTE_JURIDICO".nombre_org) AS "Nombre",
-                    "CLIENTE".tipo_cliente AS "Tipo_Cliente",
-                    "CANAL".tipo_canal AS "Canal_Afiliacion",
+                    CASE
+                        WHEN "CLIENTE".tipo_cliente = 'Natural' THEN 'N'
+                        ELSE 'J' END AS "Tipo_Cliente",
+                    CASE 
+                        WHEN "CANAL".descripcion ILIKE '%%Web%%' THEN 'W'
+                        WHEN "CANAL".descripcion ILIKE '%%Movil%%' THEN 'M'
+                        ELSE 'O' 
+                    END AS "Canal_Afiliacion",
                     COALESCE("CUENTA".cuentas, 0) AS "Total_Productos",
                     COALESCE("CUENTA".saldo_total_cuenta, 0.00) AS "Saldo_Total",
-                    "CLIENTE".fecha_registro AS "Fecha_Registro",
+                    "CLIENTE".fecha_registro::DATE AS "Fecha_Registro",
                     kpi.total_clientes_activos AS "Total_Clientes_Activos",
                     kpi.total_cuentas_activas AS "Total_Cuentas_Activas",
                     kpi.total_tarjetas_activas AS "Total_Tarjetas_Activas",
                     kpi.onboarding_portal_web AS "Onboarding_Portal_Web",
                     kpi.onboarding_app_movil AS "Onboarding_App_Movil",
                     kpi.onboarding_ivr_otros AS "Onboarding_IVR_Otros",
-                    mov.total_ingresos AS "Total_Ingresos_Periodo",
-                    mov.total_egresos AS "Total_Egresos_Periodo"
+                    COALESCE(mov.total_ingresos, 0.00) AS "Total_Ingresos_Periodo",
+                    COALESCE(mov.total_egresos, 0.00) AS "Total_Egresos_Periodo"
                 FROM usb_bank."CLIENTE"
                 LEFT JOIN usb_bank."CLIENTE_NATURAL" ON "CLIENTE"."id_cliente" = "CLIENTE_NATURAL"."id_cliente"
                 LEFT JOIN usb_bank."CLIENTE_JURIDICO" ON "CLIENTE"."id_cliente" = "CLIENTE_JURIDICO"."id_cliente"
@@ -75,7 +81,7 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     JOIN usb_bank."CANAL" can ON can.id_canal = c.id_canal_onboarding
                     WHERE LOWER(c.estado) = 'activo'
                 ) kpi
-                CROSS JOIN (
+                LEFT JOIN (
                     WITH movimientos_filtrados AS (
                         SELECT m.*
                         FROM usb_bank."MOVIMIENTO" m
@@ -98,13 +104,15 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                         FROM movimientos_filtrados m
                     )
                     SELECT
+                        cu_mov.id_cliente,
                         COALESCE(SUM(mu.ingreso), 0.00) AS total_ingresos,
                         COALESCE(SUM(mu.egreso), 0.00) AS total_egresos
                     FROM movimientos_unificados mu
                     JOIN usb_bank."CUENTA" cu_mov ON mu.nro_cuenta = cu_mov.nro_cuenta
                     WHERE (mu.ingreso + mu.egreso) > 0
-                ) mov
-                ORDER BY "CLIENTE".id_cliente;
+                    GROUP BY cu_mov.id_cliente
+                ) mov ON "CLIENTE"."id_cliente" = mov.id_cliente
+                ORDER BY "CLIENTE".id_cliente
             """
             query_params = (
                 fecha_inicio,
