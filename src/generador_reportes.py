@@ -342,13 +342,17 @@ def generador_reportes_estadisticos(
             tipo_cliente if tipo_cliente and tipo_cliente != "Todos" else "General"
         )
         nombre_archivo = f"reportes_generados/reportes_estadisticos/Reporte_Estadistico_{etiqueta_tipo}_{timestamp}.txt"
+        leyenda_codigos = (
+            "Leyenda: Canal (M=App Móvil, W=Web) | Tipo Cliente (N=Natural, J=Jurídico)"
+        )
 
         with open(nombre_archivo, "w", encoding="utf-8") as f:
-            f.write("REPORTE ESTADISTICO EJECUTIVO (CBO/CEO)\n")
+            f.write("REPORTE ESTADÍSTICO EJECUTIVO (CBO/CEO)\n")
             f.write(
-                f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Día del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
             f.write(f"{rango_fechas} | Tipo: {tipo_cliente} | Canal: {canal}\n")
+            f.write(f"{leyenda_codigos}\n")
             f.write("-" * 85 + "\n\n")
 
             if df_final.empty:
@@ -385,7 +389,7 @@ def generador_reportes_estadisticos(
                     f"Onboarding por Canal - Portal Web: {onboarding_portal_web} clientes\n"
                 )
                 f.write(
-                    f"Onboarding por Canal - App Movil: {onboarding_app_movil} clientes\n"
+                    f"Onboarding por Canal - App Móvil: {onboarding_app_movil} clientes\n"
                 )
 
         print(f"[TXT OK] Reporte estadístico generado en: {nombre_archivo}")
@@ -399,6 +403,7 @@ def generador_reportes_estadisticos(
         metadata_pdf_estadistico = [
             rango_fechas,
             f"Tipo: {tipo_cliente} | Canal: {canal}",
+            "Leyenda: Canal (M=App Móvil, W=Web) | Tipo Cliente (N=Natural, J=Jurídico)",
         ]
         titulo_rango = f"Resumen de Operaciones ({rango_fechas})"
         secciones_resumen_estadistico = [
@@ -430,7 +435,7 @@ def generador_reportes_estadisticos(
                         f"{onboarding_portal_web} clientes",
                     ),
                     (
-                        "Onboarding por Canal - App Movil",
+                        "Onboarding por Canal - App Móvil",
                         f"{onboarding_app_movil} clientes",
                     ),
                 ],
@@ -784,7 +789,7 @@ def generador_reportes_contables(
         with open(nombre_archivo, "w", encoding="utf-8") as f:
             f.write("REPORTE CONTABLE DE INGRESOS Y EGRESOS\n")
             f.write(
-                f"Dia del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+                f"Día del reporte: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
             )
             f.write(f"Agrupado por: {agrupar_por.upper()}\n")
             f.write(f"{rango_fechas} | Estado: {estado_movimiento}\n")
@@ -884,7 +889,7 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
         nombre_pdf = f"Reporte_Auditoria_Limpieza_{timestamp}.pdf"
         metadata_pdf_auditoria = [
             "Todos los registros hasta la fecha",
-            f"Dia de ejecucion: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Día de ejecución: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
         ]
         exportar_pdf(
             df_auditoria,
