@@ -256,18 +256,19 @@ def generador_reportes_estadisticos(
 
     if canal and canal != "Todos":
         clientes_filtrado = clientes_filtrado[
-            clientes_filtrado["Canal_Afiliacion"] == canal
+            clientes_filtrado["Canal_Onboarding"] == canal
         ]
 
     columnas_deseadas = [
         "ID_Cliente",
         "Nombre",
         "Tipo_Cliente",
-        "Canal_Afiliacion",
+        "Canal_Onboarding",
+        "Total_Cuentas",
+        "Total_Tarjetas",
         "Fecha_Registro",
-        "Total_Productos",
-        "Total_Ingresos_Periodo",
-        "Total_Egresos_Periodo",
+        "Debe",
+        "Haber",
         "Saldo_Total",
     ]
     columnas_reporte = [
@@ -293,15 +294,15 @@ def generador_reportes_estadisticos(
     onboarding_app_movil = 0
 
     if not df_clientes.empty:
-        if "Total_Ingresos_Periodo" in df_clientes.columns:
+        if "Debe" in df_clientes.columns:
             total_ingresos_periodo = float(
-                pd.to_numeric(df_clientes["Total_Ingresos_Periodo"], errors="coerce")
+                pd.to_numeric(df_clientes["Debe"], errors="coerce")
                 .fillna(0)
                 .sum()
             )
-        if "Total_Egresos_Periodo" in df_clientes.columns:
+        if "Haber" in df_clientes.columns:
             total_egresos_periodo = float(
-                pd.to_numeric(df_clientes["Total_Egresos_Periodo"], errors="coerce")
+                pd.to_numeric(df_clientes["Haber"], errors="coerce")
                 .fillna(0)
                 .sum()
             )

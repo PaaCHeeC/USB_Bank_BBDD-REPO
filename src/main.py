@@ -39,8 +39,9 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                         WHEN "CANAL".descripcion ILIKE '%%Web%%' THEN 'W'
                         WHEN "CANAL".descripcion ILIKE '%%Movil%%' THEN 'M'
                         ELSE 'O' 
-                    END AS "Canal_Afiliacion",
-                    COALESCE("CUENTA".cuentas, 0) AS "Total_Productos",
+                    END AS "Canal_Onboarding",
+                    COALESCE("CUENTA".cuentas, 0) AS "Total_Cuentas",
+                    COALESCE("TARJETA".tarjetas, 0) AS "Total_Tarjetas",
                     COALESCE("CUENTA".saldo_total_cuenta, 0.00) AS "Saldo_Total",
                     "CLIENTE".fecha_registro::DATE AS "Fecha_Registro",
                     kpi.total_clientes_activos AS "Total_Clientes_Activos",
@@ -49,8 +50,8 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     kpi.onboarding_portal_web AS "Onboarding_Portal_Web",
                     kpi.onboarding_app_movil AS "Onboarding_App_Movil",
                     kpi.onboarding_ivr_otros AS "Onboarding_IVR_Otros",
-                    COALESCE(mov.total_ingresos, 0.00) AS "Total_Ingresos_Periodo",
-                    COALESCE(mov.total_egresos, 0.00) AS "Total_Egresos_Periodo"
+                    COALESCE(mov.total_ingresos, 0.00) AS "Debe",
+                    COALESCE(mov.total_egresos, 0.00) AS "Haber"
                 FROM usb_bank."CLIENTE"
                 LEFT JOIN usb_bank."CLIENTE_NATURAL" ON "CLIENTE"."id_cliente" = "CLIENTE_NATURAL"."id_cliente"
                 LEFT JOIN usb_bank."CLIENTE_JURIDICO" ON "CLIENTE"."id_cliente" = "CLIENTE_JURIDICO"."id_cliente"
@@ -62,6 +63,13 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                     FROM usb_bank."CUENTA"
                     GROUP BY id_cliente
                 ) "CUENTA" ON "CLIENTE"."id_cliente" = "CUENTA"."id_cliente"
+                LEFT JOIN (
+                    SELECT cu.id_cliente,
+                           COUNT(DISTINCT t.nro_tarjeta) AS tarjetas
+                    FROM usb_bank."CUENTA" cu
+                    JOIN usb_bank."TARJETA" t ON cu.nro_cuenta = t.nro_cuenta
+                    GROUP BY cu.id_cliente
+                ) "TARJETA" ON "CLIENTE"."id_cliente" = "TARJETA"."id_cliente"
                 CROSS JOIN (
                     SELECT
                         COUNT(*) FILTER (WHERE LOWER(c.estado) = 'activo') AS total_clientes_activos,
