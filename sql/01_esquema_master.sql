@@ -176,13 +176,25 @@ CREATE TABLE "CUENTA" (
     tipo_cuenta VARCHAR(20) NOT NULL,
     fecha_apertura TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     saldo NUMERIC(15,2) NOT NULL DEFAULT 0.00,
-    limite_diario NUMERIC(15,2) NOT NULL,
-    tasa_interes NUMERIC(5,2),
     moneda VARCHAR(3) NOT NULL DEFAULT 'VES',
     estado VARCHAR(20) NOT NULL DEFAULT 'activa',
     CONSTRAINT chk_tipo_cuenta CHECK (tipo_cuenta IN ('Ahorro', 'Corriente')),
     CONSTRAINT fk_cuenta_cliente FOREIGN KEY (id_cliente) REFERENCES "CLIENTE"(id_cliente),
     CONSTRAINT fk_cuenta_canal FOREIGN KEY (id_canal_apertura) REFERENCES "CANAL"(id_canal)
+);
+
+CREATE TABLE "CUENTA_AHORRO" (
+    nro_cuenta VARCHAR(20) PRIMARY KEY,
+    limite_diario NUMERIC(15,2) NOT NULL,
+    tasa_interes NUMERIC(5,2) NOT NULL,
+    CONSTRAINT chk_tasa_ahorro CHECK (tasa_interes >= 0),
+    CONSTRAINT fk_cahorro_cuenta FOREIGN KEY (nro_cuenta) REFERENCES "CUENTA"(nro_cuenta) ON DELETE CASCADE
+);
+
+CREATE TABLE "CUENTA_CORRIENTE" (
+    nro_cuenta VARCHAR(20) PRIMARY KEY,
+    limite_diario NUMERIC(15,2) NOT NULL,
+    CONSTRAINT fk_ccorriente_cuenta FOREIGN KEY (nro_cuenta) REFERENCES "CUENTA"(nro_cuenta) ON DELETE CASCADE
 );
 
 CREATE TABLE "CONTRATO" (
@@ -284,7 +296,7 @@ CREATE TABLE "MOVIMIENTO" (
     saldo_destino_previo NUMERIC(15,2),
     saldo_destino_nuevo NUMERIC(15,2),
     ubi_transaccion VARCHAR(255),
-    
+
     CONSTRAINT fk_mov_tipo FOREIGN KEY (id_tipo_mov) REFERENCES "TIPO_MOVIMIENTO"(id_tipo_mov),
     CONSTRAINT fk_mov_canal FOREIGN KEY (id_canal) REFERENCES "CANAL"(id_canal),
     CONSTRAINT fk_mov_banco_origen FOREIGN KEY (id_banco_origen) REFERENCES "BANCO"(id_banco),
@@ -365,15 +377,15 @@ DECLARE
     v_documento VARCHAR(30); v_nombre VARCHAR(150); v_cant_cuentas INTEGER;
 BEGIN
     SELECT COALESCE(k.numero_documento, OLD.rif, 'SIN DOC') INTO v_documento FROM "VALIDACION_KYC" k WHERE k.id_cliente = OLD.id_cliente;
-    
-    IF OLD.tipo_cliente = 'Natural' THEN 
+
+    IF OLD.tipo_cliente = 'Natural' THEN
         SELECT COALESCE(cn.primer_nombre || ' ' || cn.apellido, 'SIN NOMBRE') INTO v_nombre FROM "CLIENTE_NATURAL" cn WHERE cn.id_cliente = OLD.id_cliente;
-    ELSIF OLD.tipo_cliente = 'Juridico' THEN 
+    ELSIF OLD.tipo_cliente = 'Juridico' THEN
         SELECT COALESCE(cj.nombre_org, 'SIN NOMBRE') INTO v_nombre FROM "CLIENTE_JURIDICO" cj WHERE cj.id_cliente = OLD.id_cliente;
     ELSE
         v_nombre := 'NO DEFINIDO';
     END IF;
-    
+
     SELECT COUNT(*) INTO v_cant_cuentas FROM "CUENTA" WHERE id_cliente = OLD.id_cliente;
     INSERT INTO "REPORTE_CLIENTES_ELIMINADOS" (id_cliente, doc_cliente, nombre_cliente, cantidad_cuentas) VALUES (OLD.id_cliente, v_documento, v_nombre, v_cant_cuentas);
     RETURN OLD;
