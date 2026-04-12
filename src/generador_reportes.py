@@ -203,13 +203,13 @@ def exportar_pdf(
             for item in fila_datos:
                 fila.cell(texto_pdf(item))
 
-    if subcarpeta == "reportes_estadisticos":
+    if subcarpeta == "reportes_estadisticos" and saldo_total_texto:
         pdf.ln(5)
         pdf.set_font("helvetica", style="I", size=10)
         pdf.cell(
             0,
             10,
-            f"Saldo Total: {saldo_total_texto or 'VES 0,00'}\n",
+            f"Saldo Total: {saldo_total_texto}\n",
             align="L",
             new_x="LMARGIN",
             new_y="NEXT",
@@ -343,6 +343,7 @@ def generador_reportes_estadisticos(
             pd.to_numeric(df_final["Saldo_Total"], errors="coerce").fillna(0).sum()
         )
     df_final_export = formatear_columnas_monetarias(df_final, ["Saldo_Total"])
+    hay_datos_estadisticos = not df_final.empty
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     rango_fechas = formatear_rango_fechas(fecha_inicio_reporte, fecha_fin_reporte)
@@ -418,7 +419,18 @@ def generador_reportes_estadisticos(
             f.write("-" * 85 + "\n\n")
 
             if df_final.empty:
-                f.write("No se encontraron clientes con los criterios especificados.\n")
+                df_vacio_estadistico = pd.DataFrame(
+                    [
+                        {
+                            "Mensaje": "No hay información con los filtros seleccionados.",
+                            "Fecha Inicio": fecha_inicio_reporte or "Todos",
+                            "Fecha Fin": fecha_fin_reporte or "Todos",
+                            "Tipo Cliente": tipo_cliente or "Todos",
+                            "Canal": canal or "Todos",
+                        }
+                    ]
+                )
+                f.write(df_vacio_estadistico.to_string(index=False))
             else:
                 f.write(df_final_txt.to_string(index=False))
                 f.write("\n\n" + "-" * 80 + "\n")
@@ -504,17 +516,41 @@ def generador_reportes_estadisticos(
             },
         ]
 
-        anchos_estadisticos = (11, 29, 11, 12, 12, 12, 18, 15, 15, 20)
+        if hay_datos_estadisticos:
+            df_pdf_estadistico = df_final_export
+            anchos_estadisticos = (11, 29, 11, 12, 12, 12, 18, 15, 15, 20)
+            saldo_total_pdf = f"VES {formatear_monto_ves(saldo_total_general)}"
+            secciones_resumen_pdf = secciones_resumen_estadistico
+        else:
+            df_pdf_estadistico = pd.DataFrame(
+                [
+                    {
+                        "Mensaje": "No hay información con los filtros seleccionados.",
+                        "Fecha Inicio": fecha_inicio_reporte or "Todos",
+                        "Fecha Fin": fecha_fin_reporte or "Todos",
+                        "Tipo Cliente": tipo_cliente or "Todos",
+                        "Canal": canal or "Todos",
+                    }
+                ]
+            )
+            anchos_estadisticos = (36, 20, 20, 16, 16)
+            saldo_total_pdf = None
+            secciones_resumen_pdf = None
 
         exportar_pdf(
-            df_final_export,
+            df_pdf_estadistico,
             nombre_pdf,
             "reportes_estadisticos",
             metadata_lineas=metadata_pdf_estadistico,
-            secciones_resumen=secciones_resumen_estadistico,
-            saldo_total_texto=f"VES {formatear_monto_ves(saldo_total_general)}",
+            secciones_resumen=secciones_resumen_pdf,
+            saldo_total_texto=saldo_total_pdf,
             anchos_columnas=anchos_estadisticos,
         )
+
+    return {
+        "ok": True,
+        "has_data": bool(hay_datos_estadisticos),
+    }
 
 
 # hace lo mismo que generador_reportes_estadisticos, pero con reportes contables
@@ -935,6 +971,12 @@ def generador_reportes_contables(
             anchos_columnas=anchos_contables,
         )
 
+    hay_datos_contables = not df_pivot.empty and "Mensaje" not in df_pivot.columns
+    return {
+        "ok": True,
+        "has_data": hay_datos_contables,
+    }
+
 
 # Esta funcion hace el reporte de clientes eliminados por inactividad
 def generador_reportes_auditoria(df_auditoria, formato="ambos"):
@@ -979,3 +1021,11 @@ def generador_reportes_auditoria(df_auditoria, formato="ambos"):
             "reportes_auditoria",
             metadata_lineas=metadata_pdf_auditoria,
         )
+
+    has_data_auditoria = (
+        not df_auditoria.empty and "Mensaje" not in df_auditoria.columns
+    )
+    return {
+        "ok": True,
+        "has_data": has_data_auditoria,
+    }

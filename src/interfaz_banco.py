@@ -66,7 +66,7 @@ class InterfazBanco(ctk.CTk):
         self.crear_panel_lateral()
         self.crear_panel_central()
         self.update_ui_colors()
-        
+
         self.cambiar_seccion("estadistico")
 
     def _icono_estadistico(self, size):
@@ -138,7 +138,9 @@ class InterfazBanco(ctk.CTk):
             "inicio": inicio if inicio else None,
             "fin": fin if fin else None,
             "tipo": self.combo_filtro.get(),
-            "canal": self.combo_canal.get() if hasattr(self, 'combo_canal') and self.seccion_activa == "estadistico" else "Todos",
+            "canal": self.combo_canal.get()
+            if hasattr(self, "combo_canal") and self.seccion_activa == "estadistico"
+            else "Todos",
             "estado_movimiento": estado if estado else "Todos",
             "agrupar_por": self.combo_filtro.get().lower()
             if self.seccion_activa == "contable"
@@ -158,13 +160,30 @@ class InterfazBanco(ctk.CTk):
             print(
                 f"\n--- Generando {self.seccion_activa.upper()} en formato {formato.upper()} ---"
             )
-            obtener_datos_y_generar(self.seccion_activa, filtros)
-            messagebox.showinfo(
-                "Éxito",
-                f"Reporte {self.seccion_activa} ({formato.upper()}) generado correctamente.",
+            resultado = obtener_datos_y_generar(self.seccion_activa, filtros)
+            if isinstance(resultado, dict) and not resultado.get("has_data", True):
+                messagebox.showwarning(
+                    "Reporte generado",
+                    resultado.get(
+                        "message",
+                        "Reporte creado, pero no hay datos de movimientos para generar este reporte.",
+                    ),
+                )
+            else:
+                messagebox.showinfo(
+                    "Éxito",
+                    resultado.get(
+                        "message",
+                        f"Reporte {self.seccion_activa} ({formato.upper()}) generado correctamente.",
+                    )
+                    if isinstance(resultado, dict)
+                    else f"Reporte {self.seccion_activa} ({formato.upper()}) generado correctamente.",
+                )
+        except Exception:
+            messagebox.showerror(
+                "Error",
+                "Hubo un error al crear el reporte. Revisa los filtros o la conexión.",
             )
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo generar el reporte: {e}")
 
     def cambiar_seccion(self, seccion):
         self.seccion_activa = seccion
@@ -225,13 +244,17 @@ class InterfazBanco(ctk.CTk):
     def _ocultar_filtro(self):
         self.lbl_filtro.grid_remove()
         self.combo_filtro.grid_remove()
-        
+
     def _mostrar_canal(self):
-        self.lbl_canal.grid(row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w")
-        self.combo_canal.grid(row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew")
+        self.lbl_canal.grid(
+            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+        )
+        self.combo_canal.grid(
+            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+        )
 
     def _ocultar_canal(self):
-        if hasattr(self, 'lbl_canal'):
+        if hasattr(self, "lbl_canal"):
             self.lbl_canal.grid_remove()
             self.combo_canal.grid_remove()
 
@@ -546,13 +569,15 @@ class InterfazBanco(ctk.CTk):
         self.combo_filtro.grid(
             row=3, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
-        
+
         self.lbl_canal = ctk.CTkLabel(
             self.form_frame,
             text="Canal de Onboarding",
             font=ctk.CTkFont(family="Segoe UI", weight="bold", size=13),
         )
-        self.lbl_canal.grid(row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w")
+        self.lbl_canal.grid(
+            row=4, column=0, columnspan=2, padx=30, pady=(0, 10), sticky="w"
+        )
 
         self.combo_canal = ctk.CTkComboBox(
             self.form_frame,
@@ -561,7 +586,9 @@ class InterfazBanco(ctk.CTk):
             corner_radius=8,
         )
         self.combo_canal.set("Todos")
-        self.combo_canal.grid(row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew")
+        self.combo_canal.grid(
+            row=5, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
+        )
 
         self.lbl_estado = ctk.CTkLabel(
             self.form_frame,
@@ -588,7 +615,7 @@ class InterfazBanco(ctk.CTk):
         self.combo_estado.grid(
             row=7, column=0, columnspan=2, padx=30, pady=(0, 30), sticky="ew"
         )
-        
+
         self._ocultar_canal()
         self._ocultar_estado()
 

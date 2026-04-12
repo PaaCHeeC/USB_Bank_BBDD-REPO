@@ -123,8 +123,10 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
 
         formato = filtros.get("formato_deseado", "ambos")
 
+        resultado_generador = None
+
         if tipo_reporte == "estadistico":
-            generador_reportes_estadisticos(
+            resultado_generador = generador_reportes_estadisticos(
                 df_clientes=df,
                 fecha_inicio=filtros.get("inicio"),
                 fecha_fin=filtros.get("fin"),
@@ -133,7 +135,7 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                 formato=formato,
             )
         elif tipo_reporte == "contable":
-            generador_reportes_contables(
+            resultado_generador = generador_reportes_contables(
                 df_movimientos=df,
                 agrupar_por=filtros.get("agrupar_por", "cliente"),
                 formato=formato,
@@ -144,12 +146,40 @@ def obtener_datos_y_generar(tipo_reporte, filtros):
                 ),
             )
         elif tipo_reporte == "auditoria":
-            generador_reportes_auditoria(df_auditoria=df, formato=formato)
+            resultado_generador = generador_reportes_auditoria(
+                df_auditoria=df, formato=formato
+            )
+
+        if isinstance(resultado_generador, dict):
+            if not resultado_generador.get("has_data", True):
+                mensaje_sin_datos = (
+                    "Reporte creado pero no hay datos de movimientos para generar este reporte."
+                    if tipo_reporte == "contable"
+                    else "Reporte creado pero no hay información con los filtros seleccionados."
+                )
+                return {
+                    "ok": True,
+                    "has_data": False,
+                    "message": mensaje_sin_datos,
+                }
+
+            return {
+                "ok": True,
+                "has_data": True,
+                "message": "Reporte creado con éxito.",
+            }
+
+        return {
+            "ok": True,
+            "has_data": True,
+            "message": "Reporte creado con éxito.",
+        }
 
     except Exception as error:
         print(f"Error critico en el proceso: {error}")
         if connection:
             connection.rollback()
+        raise
     finally:
         if connection is not None:
             connection.close()
