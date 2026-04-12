@@ -19,5 +19,12 @@ reportes_generados/
 # Incluir el archivo de requisitos para python
 !requirements.txt
 
-# Ignorar archivos tex
+# Ignorar archivos latex, pero no los PDFs generados
 *.tex
+*.log
+*.aux
+*.out
+*.toc
+!LOGO_ANDRADE.pdf
+!TECNICO.pdf
+!FUNCIONAL.pdf
