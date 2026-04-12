@@ -56,7 +56,7 @@ Importar el script maestro ubicado en sql/MASTER_SCRIPT.sql para crear la estruc
 - Instalación de Dependencias:
   - pip install -r requirements.txt
 - Inicio de la Aplicación:
-  - python3 src/main.py # En Windows: python src\main.py
+  - python3 src/interfaz_banco.py # En Windows: python src\interfaz_banco.py
 
 6. Equipo de Desarrollo (Equipo A)
 
