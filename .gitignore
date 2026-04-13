@@ -19,13 +19,15 @@ reportes_generados/
 # Incluir el archivo de requisitos para python
 !requirements.txt
 
-# Ignorar archivos latex, pero no los PDFs generados
+# Incluir los documentos técnico, funcional y de presentación
+!USB - LSBD - PRY03 - FUNC - 2010479 - 2010527 - 2010274 - 2110447 - 1910175 - 1810436.pdf
+!USB - LSBD - PRY03 - TECN - 2010479 - 2010527 - 2010274 - 2110447 - 1910175 - 1810436.pdf
+!USB - LSBD - PRY03 - PRES - 2010479 - 2010527 - 2010274 - 2110447 - 1910175 - 1810436.pdf
+
+# Ignorar archivos latex
 *.tex
 *.log
 *.aux
 *.out
 *.toc
 *.png
-USB - LSBD - PRY03 - FUNC - 2010479 - 2010527 - 2010274 - 2110447 - 1910175 - 1810436.pdf
-!FUNCIONAL.pdf
-USB-LSBD-PRY03-TECN-2010479-2010527-2010274-2110447-1910175-1810436.pdf
